@@ -1,0 +1,9 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+psycopg2-binary
+pydantic[email]
+python-dotenv
+google-generativeai
+python-multipart 
+# Necesario para el manejo de formularios, útil para futuras expansiones

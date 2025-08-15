@@ -1,0 +1,924 @@
+{
+	"info": {
+		"_postman_id": "12345678-1234-5678-9012-123456789012",
+		"name": "E-commerce Backoffice + WhatsApp Bot",
+		"description": "Colección completa para probar el sistema de e-commerce backoffice y el bot de WhatsApp integrado",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "🏪 E-commerce Backend (Port 8000)",
+			"item": [
+				{
+					"name": "1. Productos",
+					"item": [
+						{
+							"name": "GET Todos los productos",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8000/products/",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"products",
+										""
+									]
+								}
+							}
+						},
+						{
+							"name": "POST Crear producto",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"iPhone 15 Pro\",\n  \"description\": \"Último modelo de iPhone con chip A17 Pro\",\n  \"price\": 899000,\n  \"category_id\": 1,\n  \"stock\": 50,\n  \"image_url\": \"https://example.com/iphone15.jpg\"\n}"
+								},
+								"url": {
+									"raw": "http://localhost:8000/products/",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"products",
+										""
+									]
+								}
+							}
+						},
+						{
+							"name": "GET Producto por ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8000/products/1",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"products",
+										"1"
+									]
+								}
+							}
+						},
+						{
+							"name": "PUT Actualizar producto",
+							"request": {
+								"method": "PUT",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"iPhone 15 Pro Max\",\n  \"description\": \"iPhone 15 Pro Max con pantalla de 6.7 pulgadas\",\n  \"price\": 999000,\n  \"category_id\": 1,\n  \"stock\": 30,\n  \"image_url\": \"https://example.com/iphone15promax.jpg\"\n}"
+								},
+								"url": {
+									"raw": "http://localhost:8000/products/1",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"products",
+										"1"
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "2. Categorías",
+					"item": [
+						{
+							"name": "GET Todas las categorías",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8000/categories/",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"categories",
+										""
+									]
+								}
+							}
+						},
+						{
+							"name": "POST Crear categoría",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Smartphones\",\n  \"description\": \"Teléfonos móviles inteligentes\"\n}"
+								},
+								"url": {
+									"raw": "http://localhost:8000/categories/",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"categories",
+										""
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "3. Campañas",
+					"item": [
+						{
+							"name": "GET Todas las campañas",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8000/campaigns/",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"campaigns",
+										""
+									]
+								}
+							}
+						},
+						{
+							"name": "POST Crear campaña",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Cyber Monday 2024\",\n  \"description\": \"Descuentos especiales en tecnología\",\n  \"start_date\": \"2024-11-25T00:00:00\",\n  \"end_date\": \"2024-11-30T23:59:59\",\n  \"discount_percentage\": 25,\n  \"is_active\": true\n}"
+								},
+								"url": {
+									"raw": "http://localhost:8000/campaigns/",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"campaigns",
+										""
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "4. Descuentos",
+					"item": [
+						{
+							"name": "GET Todos los descuentos",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8000/discounts/",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"discounts",
+										""
+									]
+								}
+							}
+						},
+						{
+							"name": "POST Crear descuento",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"code\": \"WELCOME20\",\n  \"description\": \"20% de descuento para nuevos clientes\",\n  \"discount_percentage\": 20,\n  \"is_active\": true,\n  \"valid_until\": \"2024-12-31T23:59:59\"\n}"
+								},
+								"url": {
+									"raw": "http://localhost:8000/discounts/",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"discounts",
+										""
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "5. Órdenes",
+					"item": [
+						{
+							"name": "GET Todas las órdenes",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8000/orders/",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"orders",
+										""
+									]
+								}
+							}
+						},
+						{
+							"name": "POST Crear orden",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"customer_name\": \"Juan Pérez\",\n  \"customer_email\": \"juan@example.com\",\n  \"customer_phone\": \"+56912345678\",\n  \"total_amount\": 899000,\n  \"items\": [\n    {\n      \"product_id\": 1,\n      \"quantity\": 1,\n      \"price\": 899000\n    }\n  ]\n}"
+								},
+								"url": {
+									"raw": "http://localhost:8000/orders/",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"orders",
+										""
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "6. Bot Endpoints",
+					"item": [
+						{
+							"name": "GET Búsqueda de productos para bot",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8000/bot/search?q=iphone",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"bot",
+										"search"
+									],
+									"query": [
+										{
+											"key": "q",
+											"value": "iphone"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "GET Catálogo para bot",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8000/bot/catalog",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"bot",
+										"catalog"
+									]
+								}
+							}
+						},
+						{
+							"name": "GET Campañas activas para bot",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8000/bot/campaigns",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"bot",
+										"campaigns"
+									]
+								}
+							}
+						},
+						{
+							"name": "GET Descuentos activos para bot",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8000/bot/discounts",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"bot",
+										"discounts"
+									]
+								}
+							}
+						},
+						{
+							"name": "POST Chat del bot",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"telefono\": \"+56912345678\",\n  \"mensaje\": \"Hola, quiero información sobre productos\"\n}"
+								},
+								"url": {
+									"raw": "http://localhost:8000/bot/chat",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"bot",
+										"chat"
+									]
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "🤖 WhatsApp Bot (Port 8001)",
+			"item": [
+				{
+					"name": "1. Status del Bot",
+					"item": [
+						{
+							"name": "GET Status del bot",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8001/",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8001",
+									"path": [
+										""
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "2. Webhook WhatsApp",
+					"item": [
+						{
+							"name": "POST Webhook mensaje",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"telefono\": \"+56912345678\",\n  \"mensaje\": \"Hola! ¿Qué productos tienen disponibles?\"\n}"
+								},
+								"url": {
+									"raw": "http://localhost:8001/webhook",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8001",
+									"path": [
+										"webhook"
+									]
+								}
+							}
+						},
+						{
+							"name": "POST Webhook - Consulta iPhone",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"telefono\": \"+56987654321\",\n  \"mensaje\": \"¿Tienen iPhone 15 disponible? ¿Cuál es el precio?\"\n}"
+								},
+								"url": {
+									"raw": "http://localhost:8001/webhook",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8001",
+									"path": [
+										"webhook"
+									]
+								}
+							}
+						},
+						{
+							"name": "POST Webhook - Consulta descuentos",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"telefono\": \"+56955555555\",\n  \"mensaje\": \"¿Hay algún descuento o promoción activa?\"\n}"
+								},
+								"url": {
+									"raw": "http://localhost:8001/webhook",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8001",
+									"path": [
+										"webhook"
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "3. Facebook Messenger",
+					"item": [
+						{
+							"name": "GET Verificar webhook Facebook",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8001/facebook-webhook?hub.mode=subscribe&hub.challenge=123456789&hub.verify_token=mi_token_seguro",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8001",
+									"path": [
+										"facebook-webhook"
+									],
+									"query": [
+										{
+											"key": "hub.mode",
+											"value": "subscribe"
+										},
+										{
+											"key": "hub.challenge",
+											"value": "123456789"
+										},
+										{
+											"key": "hub.verify_token",
+											"value": "mi_token_seguro"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "POST Webhook Facebook mensaje",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"entry\": [\n    {\n      \"messaging\": [\n        {\n          \"sender\": {\n            \"id\": \"1234567890\"\n          },\n          \"message\": {\n            \"text\": \"Hola, necesito información sobre sus productos\"\n          }\n        }\n      ]\n    }\n  ]\n}"
+								},
+								"url": {
+									"raw": "http://localhost:8001/facebook-webhook",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8001",
+									"path": [
+										"facebook-webhook"
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "4. Flow Payments",
+					"item": [
+						{
+							"name": "POST Flow confirm payment (SUCCESS)",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/x-www-form-urlencoded"
+									}
+								],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "apiKey",
+											"value": "749C736F-E427-482B-8400-7630D11L7766",
+											"type": "text"
+										},
+										{
+											"key": "commerceOrder",
+											"value": "1",
+											"type": "text"
+										},
+										{
+											"key": "amount",
+											"value": "899000",
+											"type": "text"
+										},
+										{
+											"key": "status",
+											"value": "2",
+											"type": "text"
+										},
+										{
+											"key": "s",
+											"value": "firma_hash_aqui",
+											"type": "text",
+											"description": "Reemplazar con firma HMAC-SHA256 generada"
+										}
+									]
+								},
+								"url": {
+									"raw": "http://localhost:8001/flow/confirm",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8001",
+									"path": [
+										"flow",
+										"confirm"
+									]
+								}
+							}
+						},
+						{
+							"name": "GET Flow return page (SUCCESS)",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8001/flow/return?status=SUCCESS&commerceOrder=1",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8001",
+									"path": [
+										"flow",
+										"return"
+									],
+									"query": [
+										{
+											"key": "status",
+											"value": "SUCCESS"
+										},
+										{
+											"key": "commerceOrder",
+											"value": "1"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "GET Flow return page (FAILED)",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "http://localhost:8001/flow/return?status=FAILED&commerceOrder=1",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8001",
+									"path": [
+										"flow",
+										"return"
+									],
+									"query": [
+										{
+											"key": "status",
+											"value": "FAILED"
+										},
+										{
+											"key": "commerceOrder",
+											"value": "1"
+										}
+									]
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "🧪 Testing Scenarios",
+			"item": [
+				{
+					"name": "Scenario 1: Crear producto y consultarlo via bot",
+					"item": [
+						{
+							"name": "1. Crear producto nuevo",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Samsung Galaxy S24\",\n  \"description\": \"Último modelo Samsung con IA\",\n  \"price\": 750000,\n  \"category_id\": 1,\n  \"stock\": 25,\n  \"image_url\": \"https://example.com/galaxys24.jpg\"\n}"
+								},
+								"url": {
+									"raw": "http://localhost:8000/products/",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"products",
+										""
+									]
+								}
+							}
+						},
+						{
+							"name": "2. Bot consulta Samsung",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"telefono\": \"+56911111111\",\n  \"mensaje\": \"¿Tienen Samsung Galaxy disponible?\"\n}"
+								},
+								"url": {
+									"raw": "http://localhost:8001/webhook",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8001",
+									"path": [
+										"webhook"
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "Scenario 2: Flujo completo de compra",
+					"item": [
+						{
+							"name": "1. Consultar catálogo via bot",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"telefono\": \"+56922222222\",\n  \"mensaje\": \"Muéstrame todos los productos disponibles\"\n}"
+								},
+								"url": {
+									"raw": "http://localhost:8001/webhook",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8001",
+									"path": [
+										"webhook"
+									]
+								}
+							}
+						},
+						{
+							"name": "2. Crear orden de compra",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"customer_name\": \"Cliente Bot\",\n  \"customer_email\": \"clientebot@example.com\",\n  \"customer_phone\": \"+56922222222\",\n  \"total_amount\": 750000,\n  \"items\": [\n    {\n      \"product_id\": 2,\n      \"quantity\": 1,\n      \"price\": 750000\n    }\n  ]\n}"
+								},
+								"url": {
+									"raw": "http://localhost:8000/orders/",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8000",
+									"path": [
+										"orders",
+										""
+									]
+								}
+							}
+						},
+						{
+							"name": "3. Confirmar pago via Flow",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/x-www-form-urlencoded"
+									}
+								],
+								"body": {
+									"mode": "urlencoded",
+									"urlencoded": [
+										{
+											"key": "apiKey",
+											"value": "749C736F-E427-482B-8400-7630D11L7766",
+											"type": "text"
+										},
+										{
+											"key": "commerceOrder",
+											"value": "2",
+											"type": "text"
+										},
+										{
+											"key": "amount",
+											"value": "750000",
+											"type": "text"
+										},
+										{
+											"key": "status",
+											"value": "2",
+											"type": "text"
+										},
+										{
+											"key": "s",
+											"value": "firma_hash_aqui",
+											"type": "text"
+										}
+									]
+								},
+								"url": {
+									"raw": "http://localhost:8001/flow/confirm",
+									"protocol": "http",
+									"host": [
+										"localhost"
+									],
+									"port": "8001",
+									"path": [
+										"flow",
+										"confirm"
+									]
+								}
+							}
+						}
+					]
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "backend_url",
+			"value": "http://localhost:8000",
+			"type": "string"
+		},
+		{
+			"key": "bot_url",
+			"value": "http://localhost:8001",
+			"type": "string"
+		}
+	]
+}

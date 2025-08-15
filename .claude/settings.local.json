@@ -1,0 +1,31 @@
+{
+  "permissions": {
+    "allow": [
+      "Bash(rm:*)",
+      "Bash(python:*)",
+      "Bash(npm run dev:*)",
+      "Bash(pip install:*)",
+      "Bash(npx vite:*)",
+      "Bash(curl:*)",
+      "Bash(uvicorn:*)",
+      "Bash(mkdir:*)",
+      "Bash(move main.py backend )",
+      "Bash(move crud.py backend )",
+      "Bash(move database.py backend )",
+      "Bash(move dependencies.py backend )",
+      "Bash(move models.py backend )",
+      "Bash(move schemas.py backend )",
+      "Bash(move seed_data.py backend )",
+      "Bash(move requirements.txt backend )",
+      "Bash(move:*)",
+      "Bash(mv:*)",
+      "Bash(cp:*)",
+      "Bash(npm install:*)",
+      "Bash(timeout:*)",
+      "Bash(dir:*)"
+    ],
+    "deny": [],
+    "ask": [],
+    "defaultMode": "acceptEdits"
+  }
+}
