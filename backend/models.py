@@ -8,12 +8,16 @@ class Product(Base):
     
     id = Column(String, primary_key=True, index=True)
     name = Column(String, index=True)
+    description = Column(Text, nullable=True)  # Descripción del producto
     category = Column(String, index=True)
     price = Column(Float)
     sale_price = Column(Float, nullable=True)
     stock = Column(Integer)
+    width_cm = Column(Float, nullable=True)  # Ancho en centímetros
+    height_cm = Column(Float, nullable=True)  # Alto en centímetros
     image_url = Column(String)
     status = Column(String)  # Active, Archived, OutOfStock
+    client_id = Column(String, index=True, nullable=False)  # Multi-tenant isolation
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -36,11 +40,12 @@ class Order(Base):
     __tablename__ = "orders"
     
     id = Column(String, primary_key=True, index=True)
+    order_number = Column(String, unique=True, index=True)  # Número de orden secuencial
     customer_name = Column(String)
     client_id = Column(String, ForeignKey("clients.id"), nullable=True)
     date = Column(DateTime)
     total = Column(Float)
-    status = Column(String)  # Pending, Shipped, Delivered, Cancelled
+    status = Column(String)  # Pending, Received, Shipping, Delivered, Cancelled
     items = Column(Integer)
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

@@ -69,9 +69,16 @@ const Products: React.FC = () => {
     const [isConfirmModalOpen, setIsConfirmModalOpen] = useState(false);
     const [productToDelete, setProductToDelete] = useState<string | null>(null);
     const [searchTerm, setSearchTerm] = useState('');
-    const [selectedCategory, setSelectedCategory] = useState('All');
+    const [selectedCategory, setSelectedCategory] = useState('');
 
     const categories = useMemo(() => [t('common.all'), ...new Set(products.map(p => p.category))], [products, t]);
+    
+    // Initialize selectedCategory with translated 'All' value once translation is loaded
+    useEffect(() => {
+        if (!selectedCategory) {
+            setSelectedCategory(t('common.all'));
+        }
+    }, [t, selectedCategory]);
     const productCategories = useMemo(() => [...new Set(products.map(p => p.category))], [products]);
 
     const filteredProducts = useMemo(() => {
@@ -95,10 +102,13 @@ const Products: React.FC = () => {
                 const transformedProducts = productsData.map(p => ({
                     id: p.id,
                     name: p.name,
+                    description: p.description,
                     category: p.category,
                     price: p.price,
                     salePrice: p.sale_price,
                     stock: p.stock,
+                    widthCm: p.width_cm,
+                    heightCm: p.height_cm,
                     imageUrl: p.image_url,
                     status: p.status
                 }));
@@ -135,10 +145,13 @@ const Products: React.FC = () => {
             // Transform frontend data to API format
             const apiProduct = {
                 name: product.name,
+                description: product.description || null,
                 category: product.category,
                 price: product.price,
                 sale_price: product.salePrice || null,
                 stock: product.stock,
+                width_cm: product.widthCm || null,
+                height_cm: product.heightCm || null,
                 image_url: product.imageUrl,
                 status: product.status
             };
@@ -149,10 +162,13 @@ const Products: React.FC = () => {
                 const transformedProduct = {
                     id: updatedProduct.id,
                     name: updatedProduct.name,
+                    description: updatedProduct.description,
                     category: updatedProduct.category,
                     price: updatedProduct.price,
                     salePrice: updatedProduct.sale_price,
                     stock: updatedProduct.stock,
+                    widthCm: updatedProduct.width_cm,
+                    heightCm: updatedProduct.height_cm,
                     imageUrl: updatedProduct.image_url,
                     status: updatedProduct.status
                 };
@@ -164,14 +180,22 @@ const Products: React.FC = () => {
                 const transformedProduct = {
                     id: newProduct.id,
                     name: newProduct.name,
+                    description: newProduct.description,
                     category: newProduct.category,
                     price: newProduct.price,
                     salePrice: newProduct.sale_price,
                     stock: newProduct.stock,
+                    widthCm: newProduct.width_cm,
+                    heightCm: newProduct.height_cm,
                     imageUrl: newProduct.image_url,
                     status: newProduct.status
                 };
                 setProducts([transformedProduct, ...products]);
+                
+                // Reset filters to show the new product
+                setSelectedCategory(t('common.all'));
+                setSearchTerm('');
+                
                 showToast(t('products.messages.created', { name: product.name }), 'success');
             }
             // Close the modal after successful operation
@@ -211,12 +235,12 @@ const Products: React.FC = () => {
 
     return (
         <>
-            <div className="bg-surface rounded-xl shadow-lg">
-                <div className="p-6 border-b border-white/10">
+            <div className="bg-surface-light dark:bg-surface-dark rounded-xl shadow-lg">
+                <div className="p-6 border-b border-gray-200 dark:border-white/10">
                     <div className="flex justify-between items-center">
                         <div>
-                            <h2 className="text-xl font-semibold text-on-surface">{t('products.title')}</h2>
-                            <p className="text-sm text-on-surface-secondary mt-1">{t('products.description')}</p>
+                            <h2 className="text-xl font-semibold text-on-surface-light dark:text-on-surface-dark">{t('products.title')}</h2>
+                            <p className="text-sm text-on-surface-secondary-light dark:text-on-surface-secondary-dark mt-1">{t('products.description')}</p>
                         </div>
                         <button onClick={handleAddProduct} className="flex items-center gap-2 bg-primary text-white font-semibold py-2 px-4 rounded-lg hover:bg-primary/90 transition-colors">
                             <PlusIcon className="h-5 w-5" />
@@ -229,12 +253,12 @@ const Products: React.FC = () => {
                             placeholder={t('products.searchPlaceholder')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="flex-grow bg-background border border-white/10 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                            className="flex-grow bg-background-light dark:bg-background-dark border border-gray-200 dark:border-white/10 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                         <select
                             value={selectedCategory}
                             onChange={(e) => setSelectedCategory(e.target.value)}
-                            className="bg-background border border-white/10 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
+                            className="bg-background-light dark:bg-background-dark border border-gray-200 dark:border-white/10 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
                             style={{
                                 backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
                                 backgroundPosition: 'right 0.5rem center',
@@ -252,7 +276,7 @@ const Products: React.FC = () => {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead className="bg-white/5">
-                            <tr className="text-sm text-on-surface-secondary">
+                            <tr className="text-sm text-on-surface-secondary-light dark:text-on-surface-secondary-dark">
                                 <th className="py-3 px-6 font-semibold">{t('products.table.productName')}</th>
                                 <th className="py-3 px-6 font-semibold">{t('common.category')}</th>
                                 <th className="py-3 px-6 font-semibold text-right">{t('common.price')}</th>
@@ -264,7 +288,7 @@ const Products: React.FC = () => {
                         <tbody>
                             {loading ? (
                                 <tr>
-                                    <td colSpan={6} className="text-center py-12 text-on-surface-secondary">
+                                    <td colSpan={6} className="text-center py-12 text-on-surface-secondary-light dark:text-on-surface-secondary-dark">
                                         {t('common.loading')}...
                                     </td>
                                 </tr>
@@ -272,13 +296,13 @@ const Products: React.FC = () => {
                                 filteredProducts.map((product) => {
                                     const { displayPrice, originalPrice, isDiscounted } = getProductDisplayPrice(product, activeDiscounts);
                                     return (
-                                        <tr key={product.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
+                                        <tr key={product.id} className="border-b border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                                             <td className="py-4 px-6">
                                                 <div className="flex items-center gap-4">
                                                     <img src={product.imageUrl} alt={product.name} className="h-12 w-12 rounded-lg object-cover" />
                                                     <div>
-                                                        <p className="font-semibold text-on-surface">{product.name}</p>
-                                                        <p className="text-xs text-on-surface-secondary">{product.id}</p>
+                                                        <p className="font-semibold text-on-surface-light dark:text-on-surface-dark">{product.name}</p>
+                                                        <p className="text-xs text-on-surface-secondary-light dark:text-on-surface-secondary-dark">{product.id}</p>
                                                     </div>
                                                 </div>
                                             </td>
@@ -290,11 +314,11 @@ const Products: React.FC = () => {
                                                         <div className="text-xs">
                                                             {product.salePrice && product.salePrice < product.price ? (
                                                                 <>
-                                                                    <s className="text-on-surface-secondary/60">{formatCurrency(product.salePrice, currency, i18n.language)}</s>
-                                                                    <s className="ml-1 text-on-surface-secondary/40">{formatCurrency(originalPrice, currency, i18n.language)}</s>
+                                                                    <s className="text-on-surface-secondary-light dark:text-on-surface-secondary-dark/60">{formatCurrency(product.salePrice, currency, i18n.language)}</s>
+                                                                    <s className="ml-1 text-on-surface-secondary-light dark:text-on-surface-secondary-dark/40">{formatCurrency(originalPrice, currency, i18n.language)}</s>
                                                                 </>
                                                             ) : (
-                                                                <s className="text-on-surface-secondary/80">{formatCurrency(originalPrice, currency, i18n.language)}</s>
+                                                                <s className="text-on-surface-secondary-light dark:text-on-surface-secondary-dark/80">{formatCurrency(originalPrice, currency, i18n.language)}</s>
                                                             )}
                                                         </div>
                                                     </div>
@@ -304,7 +328,7 @@ const Products: React.FC = () => {
                                                             <>
                                                                 <span className="text-green-400 font-bold">{formatCurrency(product.salePrice, currency, i18n.language)}</span>
                                                                 <div className="text-xs">
-                                                                    <s className="text-on-surface-secondary/80">{formatCurrency(originalPrice, currency, i18n.language)}</s>
+                                                                    <s className="text-on-surface-secondary-light dark:text-on-surface-secondary-dark/80">{formatCurrency(originalPrice, currency, i18n.language)}</s>
                                                                 </div>
                                                             </>
                                                         ) : (
@@ -327,7 +351,7 @@ const Products: React.FC = () => {
                                             <td className="py-4 px-6 text-center">
                                                 <div className="flex items-center justify-center gap-2">
                                                     <button onClick={() => handleEditProduct(product)} className="text-primary hover:underline text-sm font-semibold">{t('common.edit')}</button>
-                                                    <button onClick={() => handleInitiateDelete(product.id)} aria-label={t('confirmationModal.titles.product')} className="text-red-500/80 hover:text-red-500 p-1 rounded-full hover:bg-white/10 transition-colors">
+                                                    <button onClick={() => handleInitiateDelete(product.id)} aria-label={t('confirmationModal.titles.product')} className="text-red-500/80 hover:text-red-500 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
                                                         <TrashIcon className="h-5 w-5" />
                                                     </button>
                                                 </div>
@@ -337,7 +361,7 @@ const Products: React.FC = () => {
                                 })
                             ) : (
                                 <tr>
-                                    <td colSpan={6} className="text-center py-12 text-on-surface-secondary">
+                                    <td colSpan={6} className="text-center py-12 text-on-surface-secondary-light dark:text-on-surface-secondary-dark">
                                         {t('products.noProducts')}
                                     </td>
                                 </tr>
@@ -345,7 +369,7 @@ const Products: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
-                <div className="p-4 border-t border-white/10 text-sm text-on-surface-secondary text-center">
+                <div className="p-4 border-t border-gray-200 dark:border-white/10 text-sm text-on-surface-secondary-light dark:text-on-surface-secondary-dark text-center">
                     {t('products.showingCount', { count: filteredProducts.length, total: products.length })}
                 </div>
             </div>

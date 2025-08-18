@@ -74,10 +74,36 @@ def delete_client(db: Session, client_id: str):
 def get_order(db: Session, order_id: str):
     return db.query(models.Order).filter(models.Order.id == order_id).first()
 
+def get_order_by_number(db: Session, order_number: str):
+    return db.query(models.Order).filter(models.Order.order_number == order_number).first()
+
 def get_orders(db: Session, skip: int = 0, limit: int = 100):
     return db.query(models.Order).order_by(desc(models.Order.date)).offset(skip).limit(limit).all()
 
+def generate_order_number(db: Session) -> str:
+    """Generate sequential order number"""
+    # Get the latest order number
+    latest_order = db.query(models.Order).filter(
+        models.Order.order_number.isnot(None)
+    ).order_by(desc(models.Order.created_at)).first()
+    
+    if latest_order and latest_order.order_number:
+        # Extract number from format ORD-XXXXXX
+        try:
+            current_number = int(latest_order.order_number.split('-')[1])
+            next_number = current_number + 1
+        except (IndexError, ValueError):
+            next_number = 1
+    else:
+        next_number = 1
+    
+    return f"ORD-{next_number:06d}"
+
 def create_order(db: Session, order: Dict[str, Any], order_id: str):
+    # Generate order number if not provided
+    if 'order_number' not in order or not order['order_number']:
+        order['order_number'] = generate_order_number(db)
+    
     db_order = models.Order(id=order_id, **order)
     db.add(db_order)
     db.commit()

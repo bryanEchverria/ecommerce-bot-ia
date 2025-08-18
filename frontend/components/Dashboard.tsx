@@ -8,7 +8,8 @@ import { useTranslation } from 'react-i18next';
 import { DollarSignIcon, ShoppingCartIcon, PackageIcon, UsersIcon } from './Icons';
 import { OrderStatusBadge } from './OrderStatusBadge';
 import { useCurrency, formatCurrency } from './CurrencyContext';
-import { dashboardApi, ordersApi, clientsApi } from '../services/api';
+import { tenantDashboardApi, tenantOrdersApi } from '../services/tenant-api';
+import { useAuth } from '../auth/AuthContext';
 
 interface StatCardProps {
     title: string;
@@ -19,10 +20,10 @@ interface StatCardProps {
 }
 
 const StatCard: React.FC<StatCardProps> = ({ title, value, icon, change, changeColor }) => (
-    <div className="bg-surface p-6 rounded-xl shadow-lg flex items-start justify-between">
+    <div className="bg-surface-light dark:bg-surface-dark p-6 rounded-xl shadow-lg flex items-start justify-between">
         <div>
-            <p className="text-sm text-on-surface-secondary font-medium">{title}</p>
-            <p className="text-3xl font-bold text-on-surface mt-1">{value}</p>
+            <p className="text-sm text-on-surface-secondary-light dark:text-on-surface-secondary-dark font-medium">{title}</p>
+            <p className="text-3xl font-bold text-on-surface-light dark:text-on-surface-dark mt-1">{value}</p>
             {change && <p className={`text-xs ${changeColor} mt-2 font-semibold`}>{change}</p>}
         </div>
         <div className="bg-primary/20 p-3 rounded-lg">
@@ -38,13 +39,13 @@ const RecentOrdersTable: React.FC<{ orders: Order[] }> = ({ orders }) => {
     const dateLocale = i18n.language.startsWith('es') ? es : enUS;
 
     return (
-        <div className="bg-surface p-6 rounded-xl shadow-lg h-full">
-            <h3 className="text-lg font-semibold text-on-surface mb-4">{t('dashboard.recentOrders.title')}</h3>
+        <div className="bg-surface-light dark:bg-surface-dark p-6 rounded-xl shadow-lg h-full">
+            <h3 className="text-lg font-semibold text-on-surface-light dark:text-on-surface-dark mb-4">{t('dashboard.recentOrders.title')}</h3>
             <div className="overflow-x-auto">
                 <table className="w-full text-left">
                     <thead>
-                        <tr className="border-b border-white/10 text-sm text-on-surface-secondary">
-                            <th className="py-3 px-4 font-semibold">{t('dashboard.recentOrders.headers.orderId')}</th>
+                        <tr className="border-b border-gray-200 dark:border-white/10 text-sm text-on-surface-secondary-light dark:text-on-surface-secondary-dark">
+                            <th className="py-3 px-4 font-semibold">{t('dashboard.recentOrders.headers.orderNumber')}</th>
                             <th className="py-3 px-4 font-semibold">{t('dashboard.recentOrders.headers.customer')}</th>
                             <th className="py-3 px-4 font-semibold">{t('dashboard.recentOrders.headers.date')}</th>
                             <th className="py-3 px-4 font-semibold">{t('dashboard.recentOrders.headers.status')}</th>
@@ -52,9 +53,17 @@ const RecentOrdersTable: React.FC<{ orders: Order[] }> = ({ orders }) => {
                         </tr>
                     </thead>
                     <tbody>
-                        {orders.slice(0, 5).map(order => (
-                            <tr key={order.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
-                                <td className="py-3 px-4 text-sm font-medium text-primary">{order.id}</td>
+                        {orders
+                            .sort((a, b) => {
+                                // Priorizar órdenes con orderNumber
+                                if (a.orderNumber && !b.orderNumber) return -1;
+                                if (!a.orderNumber && b.orderNumber) return 1;
+                                // Si ambas tienen o no tienen orderNumber, ordenar por fecha (más reciente primero)
+                                return new Date(b.date).getTime() - new Date(a.date).getTime();
+                            })
+                            .slice(0, 5).map(order => (
+                            <tr key={order.id} className="border-b border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
+                                <td className="py-3 px-4 text-sm font-medium text-primary">{order.orderNumber || order.id}</td>
                                 <td className="py-3 px-4 text-sm">{order.customerName}</td>
                                 <td className="py-3 px-4 text-sm">{format(parseISO(order.date), 'MMM d, yyyy', { locale: dateLocale })}</td>
                                 <td className="py-3 px-4"><OrderStatusBadge status={order.status} /></td>
@@ -63,7 +72,7 @@ const RecentOrdersTable: React.FC<{ orders: Order[] }> = ({ orders }) => {
                         ))}
                          {orders.length === 0 && (
                             <tr>
-                                <td colSpan={5} className="text-center py-12 text-on-surface-secondary">
+                                <td colSpan={5} className="text-center py-12 text-on-surface-secondary-light dark:text-on-surface-secondary-dark">
                                     {t('dashboard.recentOrders.noOrders')}
                                 </td>
                             </tr>
@@ -87,7 +96,7 @@ const TimeRangeFilter: React.FC<{ selected: TimeRange, onSelect: (range: TimeRan
     ];
 
     return (
-        <div className="flex bg-surface rounded-lg p-1 space-x-1">
+        <div className="flex bg-surface-light dark:bg-surface-dark rounded-lg p-1 space-x-1">
             {ranges.map(({ key, label }) => (
                 <button
                     key={key}
@@ -95,7 +104,7 @@ const TimeRangeFilter: React.FC<{ selected: TimeRange, onSelect: (range: TimeRan
                     className={`px-4 py-1.5 rounded-md text-sm font-semibold transition-colors focus:outline-none ${
                         selected === key
                             ? 'bg-primary text-white shadow'
-                            : 'text-on-surface-secondary hover:bg-white/10'
+                            : 'text-on-surface-secondary-light dark:text-on-surface-secondary-dark hover:bg-gray-100 dark:hover:bg-white/10'
                     }`}
                 >
                     {label}
@@ -109,35 +118,47 @@ const TimeRangeFilter: React.FC<{ selected: TimeRange, onSelect: (range: TimeRan
 const Dashboard: React.FC = () => {
     const { t, i18n } = useTranslation();
     const { currency } = useCurrency();
+    const { client, isAuthenticated } = useAuth(); // Get authenticated client
     const [timeRange, setTimeRange] = useState<TimeRange>('30d');
     const dateLocale = i18n.language.startsWith('es') ? es : enUS;
     const [orders, setOrders] = useState<any[]>([]);
-    const [clients, setClients] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
     // Load data from API
     useEffect(() => {
         const loadData = async () => {
+            if (!isAuthenticated || !client) {
+                setLoading(false);
+                return;
+            }
+
             try {
                 setLoading(true);
-                const [ordersData, clientsData] = await Promise.all([
-                    ordersApi.getAll(),
-                    clientsApi.getAll()
-                ]);
+                // Only load tenant-aware orders - no more client data needed
+                const ordersData = await tenantOrdersApi.getAll();
                 
-                setOrders(ordersData);
-                setClients(clientsData);
+                // Transform API data to match frontend types
+                const transformedOrders = ordersData.map(o => ({
+                    id: o.id,
+                    orderNumber: o.code, // tenant orders use 'code' field
+                    customerName: o.customer_name,
+                    date: o.created_at || o.date,
+                    items: o.items || 1,
+                    status: o.status,
+                    total: parseFloat(o.total) || 0
+                }));
+                
+                setOrders(transformedOrders);
             } catch (error) {
-                console.error('Error loading dashboard data:', error);
+                console.error('Error loading tenant dashboard data:', error);
                 setOrders([]);
-                setClients([]);
             } finally {
                 setLoading(false);
             }
         };
 
         loadData();
-    }, []);
+    }, [isAuthenticated, client]);
 
     const dashboardData = useMemo(() => {
         const now = new Date();
@@ -178,17 +199,18 @@ const Dashboard: React.FC = () => {
         const currentOrders = orders.filter(o => isWithinInterval(parseISO(o.date), currentInterval));
         const previousOrders = orders.filter(o => isWithinInterval(parseISO(o.date), previousInterval));
 
-        const currentClients = clients.filter(c => isWithinInterval(parseISO(c.join_date), currentInterval));
-        const previousClients = clients.filter(c => isWithinInterval(parseISO(c.join_date), previousInterval));
+        // In multi-tenant, we track customers from orders, not separate client data
+        const currentCustomers = new Set(currentOrders.map(o => o.customerName)).size;
+        const previousCustomers = new Set(previousOrders.map(o => o.customerName)).size;
 
         const totalRevenue = currentOrders.reduce((sum, order) => sum + (order.status !== 'Cancelled' ? order.total : 0), 0);
         const salesCount = currentOrders.filter(o => o.status !== 'Cancelled').length;
-        const newCustomers = currentClients.length;
+        const newCustomers = currentCustomers;
         const newOrders = currentOrders.length;
 
         const prevTotalRevenue = previousOrders.reduce((sum, order) => sum + (order.status !== 'Cancelled' ? order.total : 0), 0);
         const prevSalesCount = previousOrders.filter(o => o.status !== 'Cancelled').length;
-        const prevNewCustomers = previousClients.length;
+        const prevNewCustomers = previousCustomers;
         const prevNewOrders = previousOrders.length;
 
         const getChange = (current: number, previous: number) => {
@@ -248,7 +270,7 @@ const Dashboard: React.FC = () => {
             salesTrendData,
             recentOrders: sortedOrders,
         };
-    }, [timeRange, i18n.language, orders, clients]);
+    }, [timeRange, i18n.language, orders]);
 
     const formatChange = (change: number) => {
         if (!isFinite(change)) return '+100.0%';
@@ -259,7 +281,7 @@ const Dashboard: React.FC = () => {
     const getChangeColor = (change: number) => {
         if (change > 0) return 'text-green-400';
         if (change < 0) return 'text-red-400';
-        return 'text-on-surface-secondary';
+        return 'text-on-surface-secondary-light dark:text-on-surface-secondary-dark';
     }
 
     const getChangePeriodLabel = () => {
@@ -285,7 +307,7 @@ const Dashboard: React.FC = () => {
     if (loading) {
         return (
             <div className="flex items-center justify-center h-64">
-                <div className="text-lg text-on-surface-secondary">Loading dashboard...</div>
+                <div className="text-lg text-on-surface-secondary-light dark:text-on-surface-secondary-dark">Loading dashboard...</div>
             </div>
         );
     }
@@ -327,9 +349,9 @@ const Dashboard: React.FC = () => {
                 />
             </div>
 
-            <div className="grid grid-cols-1 lg:grid-cols-3 gap-8">
-                <div className="lg:col-span-2 bg-surface p-6 rounded-xl shadow-lg">
-                    <h3 className="text-lg font-semibold text-on-surface mb-4">{t('dashboard.salesTrend.title')}</h3>
+            <div className="grid grid-cols-1 lg:grid-cols-5 gap-8">
+                <div className="lg:col-span-3 bg-surface-light dark:bg-surface-dark p-6 rounded-xl shadow-lg">
+                    <h3 className="text-lg font-semibold text-on-surface-light dark:text-on-surface-dark mb-4">{t('dashboard.salesTrend.title')}</h3>
                     <div className="h-80">
                         <ResponsiveContainer width="100%" height="100%">
                             <LineChart data={dashboardData.salesTrendData} margin={{ top: 5, right: 20, left: -10, bottom: 5 }}>
@@ -351,7 +373,7 @@ const Dashboard: React.FC = () => {
                         </ResponsiveContainer>
                     </div>
                 </div>
-                <div className="lg:col-span-1">
+                <div className="lg:col-span-2">
                      <RecentOrdersTable orders={dashboardData.recentOrders} />
                 </div>
             </div>

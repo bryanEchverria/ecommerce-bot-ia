@@ -177,11 +177,11 @@ const Campaigns: React.FC = () => {
 
     return (
         <>
-            <div className="bg-surface rounded-xl shadow-lg">
-                <div className="p-6 border-b border-white/10 flex justify-between items-center">
+            <div className="bg-surface-light dark:bg-surface-dark rounded-xl shadow-lg">
+                <div className="p-6 border-b border-gray-200 dark:border-white/10 flex justify-between items-center">
                     <div>
-                        <h2 className="text-xl font-semibold text-on-surface">{t('campaigns.title')}</h2>
-                        <p className="text-sm text-on-surface-secondary mt-1">{t('campaigns.description')}</p>
+                        <h2 className="text-xl font-semibold text-on-surface-light dark:text-on-surface-dark">{t('campaigns.title')}</h2>
+                        <p className="text-sm text-on-surface-secondary-light dark:text-on-surface-secondary-dark mt-1">{t('campaigns.description')}</p>
                     </div>
                     <button onClick={handleAddCampaign} className="flex items-center gap-2 bg-primary text-white font-semibold py-2 px-4 rounded-lg hover:bg-primary/90 transition-colors">
                         <PlusIcon className="h-5 w-5" />
@@ -191,7 +191,7 @@ const Campaigns: React.FC = () => {
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead className="bg-white/5">
-                            <tr className="text-sm text-on-surface-secondary">
+                            <tr className="text-sm text-on-surface-secondary-light dark:text-on-surface-secondary-dark">
                                 <th className="py-3 px-6 font-semibold">{t('campaigns.headers.campaign')}</th>
                                 <th className="py-3 px-6 font-semibold text-center">{t('common.status')}</th>
                                 <th className="py-3 px-6 font-semibold">{t('campaigns.headers.period')}</th>
@@ -204,19 +204,19 @@ const Campaigns: React.FC = () => {
                         <tbody>
                             {loading ? (
                                 <tr>
-                                    <td colSpan={7} className="text-center py-12 text-on-surface-secondary">
+                                    <td colSpan={7} className="text-center py-12 text-on-surface-secondary-light dark:text-on-surface-secondary-dark">
                                         Loading campaigns...
                                     </td>
                                 </tr>
                             ) : campaigns.length > 0 ? (
                                 campaigns.map((campaign) => (
-                                    <tr key={campaign.id} className="border-b border-white/10 hover:bg-white/5 transition-colors">
+                                    <tr key={campaign.id} className="border-b border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">
                                         <td className="py-4 px-6">
                                         <div className="flex items-center gap-4">
                                             <img src={campaign.imageUrl} alt={campaign.name} className="h-12 w-12 rounded-lg object-cover" />
                                             <div>
-                                                <p className="font-semibold text-on-surface">{campaign.name}</p>
-                                                <p className="text-xs text-on-surface-secondary">{campaign.id}</p>
+                                                <p className="font-semibold text-on-surface-light dark:text-on-surface-dark">{campaign.name}</p>
+                                                <p className="text-xs text-on-surface-secondary-light dark:text-on-surface-secondary-dark">{campaign.id}</p>
                                             </div>
                                         </div>
                                     </td>
@@ -230,14 +230,14 @@ const Campaigns: React.FC = () => {
                                     <td className="py-4 px-6 text-sm text-right font-mono">{formatCurrency(campaign.budget, currency, i18n.language)}</td>
                                     <td className="py-4 px-6 text-sm text-center">
                                         <div>
-                                            <p className="font-semibold text-on-surface">{campaign.clicks.toLocaleString(i18n.language)} {t('common.clicks')}</p>
-                                            <p className="text-xs text-on-surface-secondary">{campaign.conversions.toLocaleString(i18n.language)} {t('common.conversions')}</p>
+                                            <p className="font-semibold text-on-surface-light dark:text-on-surface-dark">{campaign.clicks.toLocaleString(i18n.language)} {t('common.clicks')}</p>
+                                            <p className="text-xs text-on-surface-secondary-light dark:text-on-surface-secondary-dark">{campaign.conversions.toLocaleString(i18n.language)} {t('common.conversions')}</p>
                                         </div>
                                     </td>
                                     <td className="py-4 px-6 text-center">
                                         <div className="flex items-center justify-center gap-2">
                                             <button onClick={() => handleEditCampaign(campaign)} className="text-primary hover:underline text-sm font-semibold">{t('common.edit')}</button>
-                                            <button onClick={() => handleInitiateDelete(campaign.id)} aria-label={t('confirmationModal.titles.campaign')} className="text-red-500/80 hover:text-red-500 p-1 rounded-full hover:bg-white/10 transition-colors">
+                                            <button onClick={() => handleInitiateDelete(campaign.id)} aria-label={t('confirmationModal.titles.campaign')} className="text-red-500/80 hover:text-red-500 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
                                                 <TrashIcon className="h-5 w-5" />
                                             </button>
                                         </div>
@@ -246,7 +246,7 @@ const Campaigns: React.FC = () => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={7} className="text-center py-12 text-on-surface-secondary">
+                                    <td colSpan={7} className="text-center py-12 text-on-surface-secondary-light dark:text-on-surface-secondary-dark">
                                         No campaigns available
                                     </td>
                                 </tr>
@@ -254,7 +254,7 @@ const Campaigns: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
-                <div className="p-4 border-t border-white/10 text-sm text-on-surface-secondary text-center">
+                <div className="p-4 border-t border-gray-200 dark:border-white/10 text-sm text-on-surface-secondary-light dark:text-on-surface-secondary-dark text-center">
                     {t('campaigns.showingCount', { count: campaigns.length, total: campaigns.length })}
                 </div>
             </div>

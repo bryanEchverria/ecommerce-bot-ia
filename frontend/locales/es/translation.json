@@ -71,6 +71,7 @@
       "title": "Pedidos Recientes",
       "headers": {
         "orderId": "ID de Pedido",
+        "orderNumber": "Número de Pedido",
         "customer": "Cliente",
         "date": "Fecha",
         "status": "Estado",
@@ -115,13 +116,14 @@
     "export": "Exportar CSV",
     "headers": {
       "orderId": "ID de Pedido",
+      "orderNumber": "Número de Pedido",
       "customerName": "Nombre del Cliente",
       "date": "Fecha",
       "items": "Artículos",
       "total": "Total"
     },
     "showingCount": "Mostrando {{count}} de {{total}} pedidos",
-    "searchPlaceholder": "Buscar por ID de Pedido o Cliente...",
+    "searchPlaceholder": "Buscar por Número de Pedido o Cliente...",
     "filterByStatus": "Filtrar por estado",
     "allStatuses": "Todos los Estados",
     "noOrders": "No se encontraron pedidos. Intenta ajustar tus filtros.",
@@ -130,6 +132,11 @@
       "7d": "Últimos 7 días",
       "30d": "Últimos 30 días",
       "allTime": "Todo el tiempo"
+    },
+    "messages": {
+      "updated": "Pedido {{id}} actualizado exitosamente",
+      "updateError": "Error al actualizar el pedido",
+      "loadError": "Error al cargar los pedidos"
     }
   },
   "clients": {
@@ -250,7 +257,8 @@
   },
   "orderStatus": {
     "Pending": "Pendiente",
-    "Shipped": "Enviado",
+    "Received": "Recibido",
+    "Shipping": "En Envío",
     "Delivered": "Entregado",
     "Cancelled": "Cancelado"
   },

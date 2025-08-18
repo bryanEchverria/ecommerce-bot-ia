@@ -4,10 +4,13 @@ from datetime import datetime
 
 class ProductBase(BaseModel):
     name: str
+    description: Optional[str] = None
     category: str
     price: float
     sale_price: Optional[float] = None
     stock: int
+    width_cm: Optional[float] = None
+    height_cm: Optional[float] = None
     image_url: str
     status: str
 
@@ -16,15 +19,19 @@ class ProductCreate(ProductBase):
 
 class ProductUpdate(BaseModel):
     name: Optional[str] = None
+    description: Optional[str] = None
     category: Optional[str] = None
     price: Optional[float] = None
     sale_price: Optional[float] = None
     stock: Optional[int] = None
+    width_cm: Optional[float] = None
+    height_cm: Optional[float] = None
     image_url: Optional[str] = None
     status: Optional[str] = None
 
 class Product(ProductBase):
     id: str
+    client_id: Optional[str] = None  # Multi-tenant isolation field (temporary optional for debugging)
     created_at: datetime
     updated_at: datetime
 
@@ -79,8 +86,9 @@ class OrderUpdate(BaseModel):
 
 class Order(OrderBase):
     id: str
-    created_at: datetime
-    updated_at: datetime
+    order_number: Optional[str] = None
+    created_at: Optional[datetime] = None
+    updated_at: Optional[datetime] = None
 
     class Config:
         from_attributes = True

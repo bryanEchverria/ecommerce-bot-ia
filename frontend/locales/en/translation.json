@@ -71,6 +71,7 @@
       "title": "Recent Orders",
       "headers": {
         "orderId": "Order ID",
+        "orderNumber": "Order Number",
         "customer": "Customer",
         "date": "Date",
         "status": "Status",
@@ -115,13 +116,14 @@
     "export": "Export CSV",
     "headers": {
       "orderId": "Order ID",
+      "orderNumber": "Order Number",
       "customerName": "Customer Name",
       "date": "Date",
       "items": "Items",
       "total": "Total"
     },
     "showingCount": "Showing {{count}} of {{total}} orders",
-    "searchPlaceholder": "Search by Order ID or Customer...",
+    "searchPlaceholder": "Search by Order Number or Customer...",
     "filterByStatus": "Filter by status",
     "allStatuses": "All Statuses",
     "noOrders": "No orders found. Try adjusting your filters.",
@@ -130,6 +132,11 @@
       "7d": "Last 7 Days",
       "30d": "Last 30 Days",
       "allTime": "All Time"
+    },
+    "messages": {
+      "updated": "Order {{id}} updated successfully",
+      "updateError": "Error updating order",
+      "loadError": "Error loading orders"
     }
   },
   "clients": {
@@ -250,7 +257,8 @@
   },
   "orderStatus": {
     "Pending": "Pending",
-    "Shipped": "Shipped",
+    "Received": "Received",
+    "Shipping": "Shipping",
     "Delivered": "Delivered",
     "Cancelled": "Cancelled"
   },

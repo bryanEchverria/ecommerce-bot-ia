@@ -7,24 +7,29 @@ export enum ProductStatus {
 
 export interface Product {
   id: string;
-  name:string;
+  name: string;
+  description?: string;
   category: string;
   price: number;
   salePrice?: number;
   stock: number;
+  widthCm?: number;
+  heightCm?: number;
   imageUrl: string;
   status: ProductStatus;
 }
 
 export enum OrderStatus {
   Pending = 'Pending',
-  Shipped = 'Shipped',
+  Received = 'Received',
+  Shipping = 'Shipping',
   Delivered = 'Delivered',
   Cancelled = 'Cancelled'
 }
 
 export interface Order {
   id: string;
+  orderNumber?: string;
   customerName: string;
   date: string;
   total: number;

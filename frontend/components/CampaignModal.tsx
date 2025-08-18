@@ -85,11 +85,11 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ isOpen, onClose, onSave, 
 
   return (
     <div className="fixed inset-0 bg-black/60 z-50 flex justify-center items-center p-4" aria-modal="true" role="dialog">
-      <div className="bg-surface rounded-xl shadow-2xl w-full max-w-2xl animate-fade-in-up">
+      <div className="bg-surface-light dark:bg-surface-dark rounded-xl shadow-2xl w-full max-w-2xl animate-fade-in-up">
         <form onSubmit={handleSubmit}>
-          <div className="p-6 border-b border-white/10 flex justify-between items-center">
-            <h3 className="text-xl font-semibold text-on-surface">{campaign ? t('campaignModal.editTitle') : t('campaignModal.addTitle')}</h3>
-            <button type="button" onClick={onClose} className="text-on-surface-secondary hover:text-on-surface transition-colors p-1 rounded-full hover:bg-white/10">
+          <div className="p-6 border-b border-gray-200 dark:border-white/10 flex justify-between items-center">
+            <h3 className="text-xl font-semibold text-on-surface-light dark:text-on-surface-dark">{campaign ? t('campaignModal.editTitle') : t('campaignModal.addTitle')}</h3>
+            <button type="button" onClick={onClose} className="text-on-surface-secondary-light dark:text-on-surface-secondary-dark hover:text-on-surface-light dark:text-on-surface-dark transition-colors p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10">
               <XIcon className="h-6 w-6" />
             </button>
           </div>
@@ -97,29 +97,29 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ isOpen, onClose, onSave, 
             <div className="grid grid-cols-1 lg:grid-cols-2 gap-x-6 gap-y-4">
                 <div className="space-y-4">
                     <div>
-                        <label htmlFor="name" className="block text-sm font-medium text-on-surface-secondary mb-2">{t('campaignModal.labels.name')}</label>
-                        <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} required className="w-full bg-background border border-white/10 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary" />
+                        <label htmlFor="name" className="block text-sm font-medium text-on-surface-secondary-light dark:text-on-surface-secondary-dark mb-2">{t('campaignModal.labels.name')}</label>
+                        <input type="text" name="name" id="name" value={formData.name} onChange={handleChange} required className="w-full bg-background-light dark:bg-background-dark border border-gray-200 dark:border-white/10 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary" />
                     </div>
                     
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="startDate" className="block text-sm font-medium text-on-surface-secondary mb-2">{t('campaignModal.labels.startDate')}</label>
-                            <input type="date" name="startDate" id="startDate" value={formData.startDate} onChange={handleChange} required className="w-full bg-background border border-white/10 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary" />
+                            <label htmlFor="startDate" className="block text-sm font-medium text-on-surface-secondary-light dark:text-on-surface-secondary-dark mb-2">{t('campaignModal.labels.startDate')}</label>
+                            <input type="date" name="startDate" id="startDate" value={formData.startDate} onChange={handleChange} required className="w-full bg-background-light dark:bg-background-dark border border-gray-200 dark:border-white/10 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary" />
                         </div>
                         <div>
-                            <label htmlFor="endDate" className="block text-sm font-medium text-on-surface-secondary mb-2">{t('campaignModal.labels.endDate')}</label>
-                            <input type="date" name="endDate" id="endDate" value={formData.endDate} onChange={handleChange} required className="w-full bg-background border border-white/10 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary" />
+                            <label htmlFor="endDate" className="block text-sm font-medium text-on-surface-secondary-light dark:text-on-surface-secondary-dark mb-2">{t('campaignModal.labels.endDate')}</label>
+                            <input type="date" name="endDate" id="endDate" value={formData.endDate} onChange={handleChange} required className="w-full bg-background-light dark:bg-background-dark border border-gray-200 dark:border-white/10 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary" />
                         </div>
                     </div>
                     <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
                         <div>
-                            <label htmlFor="status" className="block text-sm font-medium text-on-surface-secondary mb-2">{t('common.status')}</label>
+                            <label htmlFor="status" className="block text-sm font-medium text-on-surface-secondary-light dark:text-on-surface-secondary-dark mb-2">{t('common.status')}</label>
                             <select 
                                 name="status" 
                                 id="status" 
                                 value={formData.status} 
                                 onChange={handleChange} 
-                                className="w-full bg-background border border-white/10 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
+                                className="w-full bg-background-light dark:bg-background-dark border border-gray-200 dark:border-white/10 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary appearance-none"
                                 style={{
                                     backgroundImage: `url("data:image/svg+xml,%3csvg xmlns='http://www.w3.org/2000/svg' fill='none' viewBox='0 0 20 20'%3e%3cpath stroke='%239ca3af' stroke-linecap='round' stroke-linejoin='round' stroke-width='1.5' d='M6 8l4 4 4-4'/%3e%3c/svg%3e")`,
                                     backgroundPosition: 'right 0.5rem center',
@@ -134,38 +134,38 @@ const CampaignModal: React.FC<CampaignModalProps> = ({ isOpen, onClose, onSave, 
                             </select>
                         </div>
                         <div>
-                            <label htmlFor="budget" className="block text-sm font-medium text-on-surface-secondary mb-2">{t('campaignModal.labels.budget')}</label>
+                            <label htmlFor="budget" className="block text-sm font-medium text-on-surface-secondary-light dark:text-on-surface-secondary-dark mb-2">{t('campaignModal.labels.budget')}</label>
                             <div className="relative">
                                 <div className="pointer-events-none absolute inset-y-0 left-0 flex items-center pl-3">
-                                    <span className="text-on-surface-secondary sm:text-sm">{currencySymbol}</span>
+                                    <span className="text-on-surface-secondary-light dark:text-on-surface-secondary-dark sm:text-sm">{currencySymbol}</span>
                                 </div>
-                                <input type="number" name="budget" id="budget" value={formData.budget} onChange={handleChange} required min="0" step="0.01" className="w-full bg-background border border-white/10 rounded-lg py-2 px-3 pl-7 focus:outline-none focus:ring-2 focus:ring-primary" />
+                                <input type="number" name="budget" id="budget" value={formData.budget} onChange={handleChange} required min="0" step="0.01" className="w-full bg-background-light dark:bg-background-dark border border-gray-200 dark:border-white/10 rounded-lg py-2 px-3 pl-7 focus:outline-none focus:ring-2 focus:ring-primary" />
                             </div>
                         </div>
                     </div>
                 </div>
                 <div className="space-y-2">
-                    <label className="block text-sm font-medium text-on-surface-secondary">{t('campaignModal.labels.productsOnSale')}</label>
-                    <div className="bg-background border border-white/10 rounded-lg p-3 max-h-56 overflow-y-auto space-y-2">
+                    <label className="block text-sm font-medium text-on-surface-secondary-light dark:text-on-surface-secondary-dark">{t('campaignModal.labels.productsOnSale')}</label>
+                    <div className="bg-background-light dark:bg-background-dark border border-gray-200 dark:border-white/10 rounded-lg p-3 max-h-56 overflow-y-auto space-y-2">
                         {products.map(product => (
-                            <div key={product.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-white/5">
+                            <div key={product.id} className="flex items-center gap-3 p-2 rounded-md hover:bg-gray-50 dark:hover:bg-white/5">
                                 <input
                                     type="checkbox"
                                     id={`product-${product.id}`}
                                     checked={formData.productIds.includes(product.id)}
                                     onChange={() => handleProductSelection(product.id)}
-                                    className="h-4 w-4 rounded bg-surface border-white/20 text-primary focus:ring-primary"
+                                    className="h-4 w-4 rounded bg-surface-light dark:bg-surface-dark border-gray-300 dark:border-white/20 text-primary focus:ring-primary"
                                 />
                                  <img src={product.imageUrl} alt={product.name} className="h-8 w-8 rounded-md object-cover" />
-                                <label htmlFor={`product-${product.id}`} className="text-sm text-on-surface cursor-pointer flex-grow">{product.name}</label>
+                                <label htmlFor={`product-${product.id}`} className="text-sm text-on-surface-light dark:text-on-surface-dark cursor-pointer flex-grow">{product.name}</label>
                             </div>
                         ))}
                     </div>
                 </div>
             </div>
           </div>
-          <div className="p-4 bg-secondary/50 rounded-b-xl flex justify-end gap-4">
-            <button type="button" onClick={onClose} className="bg-surface text-on-surface font-semibold py-2 px-4 rounded-lg border border-white/20 hover:bg-white/5 transition-colors">{t('common.cancel')}</button>
+          <div className="p-4 bg-secondary-light dark:bg-secondary-dark/50 rounded-b-xl flex justify-end gap-4">
+            <button type="button" onClick={onClose} className="bg-surface-light dark:bg-surface-dark text-on-surface-light dark:text-on-surface-dark font-semibold py-2 px-4 rounded-lg border border-gray-300 dark:border-white/20 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors">{t('common.cancel')}</button>
             <button type="submit" className="bg-primary text-white font-semibold py-2 px-4 rounded-lg hover:bg-primary/90 transition-colors">{t('common.saveCampaign')}</button>
           </div>
         </form>

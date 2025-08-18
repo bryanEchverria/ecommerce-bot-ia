@@ -1,7 +1,7 @@
 import React, { createContext, useState, useContext, ReactNode } from 'react';
 
 // Define the currencies you want to support
-export type Currency = 'USD' | 'CLP';
+export type Currency = 'CLP';
 
 interface CurrencyContextType {
   currency: Currency;
@@ -11,7 +11,7 @@ interface CurrencyContextType {
 const CurrencyContext = createContext<CurrencyContextType | undefined>(undefined);
 
 export const CurrencyProvider: React.FC<{ children: ReactNode }> = ({ children }) => {
-  const [currency, setCurrency] = useState<Currency>('USD');
+  const [currency, setCurrency] = useState<Currency>('CLP');
 
   const value = { currency, setCurrency };
 

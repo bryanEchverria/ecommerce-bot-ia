@@ -1,38 +1,34 @@
-from fastapi import APIRouter, Depends
-from sqlalchemy.orm import Session
-from database import get_db
+from fastapi import APIRouter, Depends, Query
+from sqlalchemy.ext.asyncio import AsyncSession
+from database import get_async_db
 from schemas import DashboardStats
-import crud
+import crud_async
 
 router = APIRouter()
 
 @router.get("/dashboard/stats", response_model=DashboardStats)
-def get_dashboard_stats(db: Session = Depends(get_db)):
-    return crud.get_dashboard_stats(db)
+async def get_dashboard_stats(db: AsyncSession = Depends(get_async_db)):
+    """Get dashboard statistics using optimized async SQL queries"""
+    return await crud_async.get_dashboard_stats_async(db)
 
 @router.get("/dashboard/recent-orders")
-def get_recent_orders(limit: int = 10, db: Session = Depends(get_db)):
-    orders = crud.get_orders(db, limit=limit)
+async def get_recent_orders(
+    limit: int = Query(10, ge=1, le=100), 
+    db: AsyncSession = Depends(get_async_db)
+):
+    """Get recent orders with async pagination"""
+    orders = await crud_async.get_orders_async(db, limit=limit)
     return orders
 
 @router.get("/dashboard/low-stock-products")
-def get_low_stock_products(threshold: int = 10, db: Session = Depends(get_db)):
-    products = crud.get_products(db)
-    return [product for product in products if product.stock <= threshold]
+async def get_low_stock_products(
+    threshold: int = Query(10, ge=0, le=1000), 
+    db: AsyncSession = Depends(get_async_db)
+):
+    """Get low stock products using SQL filtering"""
+    return await crud_async.get_low_stock_products_async(db, threshold=threshold)
 
 @router.get("/dashboard/revenue-summary")
-def get_revenue_summary(db: Session = Depends(get_db)):
-    orders = crud.get_orders(db)
-    
-    total_revenue = sum(order.total for order in orders if order.status in ['Shipped', 'Delivered'])
-    pending_revenue = sum(order.total for order in orders if order.status == 'Pending')
-    cancelled_revenue = sum(order.total for order in orders if order.status == 'Cancelled')
-    
-    return {
-        "total_revenue": total_revenue,
-        "pending_revenue": pending_revenue,
-        "cancelled_revenue": cancelled_revenue,
-        "completed_orders": len([o for o in orders if o.status in ['Shipped', 'Delivered']]),
-        "pending_orders": len([o for o in orders if o.status == 'Pending']),
-        "cancelled_orders": len([o for o in orders if o.status == 'Cancelled'])
-    }
+async def get_revenue_summary(db: AsyncSession = Depends(get_async_db)):
+    """Get revenue summary with optimized SQL aggregation"""
+    return await crud_async.get_revenue_summary_async(db)

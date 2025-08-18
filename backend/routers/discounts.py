@@ -1,47 +1,57 @@
-from fastapi import APIRouter, Depends, HTTPException
-from sqlalchemy.orm import Session
+from fastapi import APIRouter, Depends, HTTPException, Query
+from sqlalchemy.ext.asyncio import AsyncSession
 from typing import List
 from uuid import uuid4
-from database import get_db
+from database import get_async_db
 from models import Discount as DiscountModel
 from schemas import Discount, DiscountCreate, DiscountUpdate
-import crud
+import crud_async
 
 router = APIRouter()
 
 @router.get("/discounts", response_model=List[Discount])
-def get_discounts(db: Session = Depends(get_db)):
-    return crud.get_discounts(db)
+async def get_discounts(
+    skip: int = Query(0, ge=0), 
+    limit: int = Query(100, ge=1, le=1000), 
+    db: AsyncSession = Depends(get_async_db)
+):
+    """Get discounts with async pagination"""
+    return await crud_async.get_discounts_async(db, skip=skip, limit=limit)
 
 @router.get("/discounts/{discount_id}", response_model=Discount)
-def get_discount(discount_id: str, db: Session = Depends(get_db)):
-    discount = crud.get_discount(db, discount_id=discount_id)
+async def get_discount(discount_id: str, db: AsyncSession = Depends(get_async_db)):
+    """Get a single discount by ID"""
+    discount = await crud_async.get_discount_async(db, discount_id=discount_id)
     if discount is None:
         raise HTTPException(status_code=404, detail="Discount not found")
     return discount
 
 @router.get("/discounts/active/list", response_model=List[Discount])
-def get_active_discounts(db: Session = Depends(get_db)):
-    return crud.get_active_discounts(db)
+async def get_active_discounts(db: AsyncSession = Depends(get_async_db)):
+    """Get only active discounts using SQL filtering"""
+    return await crud_async.get_active_discounts_async(db)
 
 @router.post("/discounts", response_model=Discount)
-def create_discount(discount: DiscountCreate, db: Session = Depends(get_db)):
+async def create_discount(discount: DiscountCreate, db: AsyncSession = Depends(get_async_db)):
+    """Create a new discount"""
     discount_id = str(uuid4())
-    return crud.create_discount(db=db, discount=discount.dict(), discount_id=discount_id)
+    return await crud_async.create_discount_async(db=db, discount=discount.dict(), discount_id=discount_id)
 
 @router.put("/discounts/{discount_id}", response_model=Discount)
-def update_discount(discount_id: str, discount: DiscountUpdate, db: Session = Depends(get_db)):
-    db_discount = crud.get_discount(db, discount_id=discount_id)
+async def update_discount(discount_id: str, discount: DiscountUpdate, db: AsyncSession = Depends(get_async_db)):
+    """Update an existing discount"""
+    db_discount = await crud_async.get_discount_async(db, discount_id=discount_id)
     if db_discount is None:
         raise HTTPException(status_code=404, detail="Discount not found")
     
-    return crud.update_discount(db=db, discount_id=discount_id, discount=discount.dict(exclude_unset=True))
+    return await crud_async.update_discount_async(db=db, discount_id=discount_id, discount=discount.dict(exclude_unset=True))
 
 @router.delete("/discounts/{discount_id}")
-def delete_discount(discount_id: str, db: Session = Depends(get_db)):
-    db_discount = crud.get_discount(db, discount_id=discount_id)
+async def delete_discount(discount_id: str, db: AsyncSession = Depends(get_async_db)):
+    """Delete a discount"""
+    db_discount = await crud_async.get_discount_async(db, discount_id=discount_id)
     if db_discount is None:
         raise HTTPException(status_code=404, detail="Discount not found")
     
-    crud.delete_discount(db=db, discount_id=discount_id)
+    await crud_async.delete_discount_async(db=db, discount_id=discount_id)
     return {"message": "Discount deleted successfully"}

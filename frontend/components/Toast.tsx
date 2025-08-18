@@ -10,100 +10,161 @@ export interface ToastProps {
 }
 
 export const Toast: React.FC<ToastProps> = ({ id, type, message, duration = 5000, onClose }) => {
-  const [isVisible, setIsVisible] = useState(true);
+  const [isVisible, setIsVisible] = useState(false);
   const [isLeaving, setIsLeaving] = useState(false);
+  const [progress, setProgress] = useState(100);
 
   useEffect(() => {
-    const timer = setTimeout(() => {
+    // Trigger enter animation
+    const enterTimer = setTimeout(() => setIsVisible(true), 50);
+    
+    // Progress bar animation
+    const progressTimer = setInterval(() => {
+      setProgress(prev => {
+        const newProgress = prev - (100 / (duration / 100));
+        return newProgress <= 0 ? 0 : newProgress;
+      });
+    }, 100);
+
+    // Auto close timer
+    const closeTimer = setTimeout(() => {
       setIsLeaving(true);
-      setTimeout(() => {
-        onClose(id);
-      }, 300); // Animation duration
+      setTimeout(() => onClose(id), 400);
     }, duration);
 
-    return () => clearTimeout(timer);
+    return () => {
+      clearTimeout(enterTimer);
+      clearTimeout(closeTimer);
+      clearInterval(progressTimer);
+    };
   }, [id, duration, onClose]);
 
   const getIcon = () => {
     switch (type) {
       case 'success':
         return (
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zm3.707-9.293a1 1 0 00-1.414-1.414L9 10.586 7.707 9.293a1 1 0 00-1.414 1.414l2 2a1 1 0 001.414 0l4-4z" clipRule="evenodd" />
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M5 13l4 4L19 7" />
           </svg>
         );
       case 'error':
         return (
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M10 18a8 8 0 100-16 8 8 0 000 16zM8.707 7.293a1 1 0 00-1.414 1.414L8.586 10l-1.293 1.293a1 1 0 101.414 1.414L10 11.414l1.293 1.293a1 1 0 001.414-1.414L11.414 10l1.293-1.293a1 1 0 00-1.414-1.414L10 8.586 8.707 7.293z" clipRule="evenodd" />
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
           </svg>
         );
       case 'warning':
         return (
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M8.257 3.099c.765-1.36 2.722-1.36 3.486 0l5.58 9.92c.75 1.334-.213 2.98-1.742 2.98H4.42c-1.53 0-2.493-1.646-1.743-2.98l5.58-9.92zM11 13a1 1 0 11-2 0 1 1 0 012 0zm-1-8a1 1 0 00-1 1v3a1 1 0 002 0V6a1 1 0 00-1-1z" clipRule="evenodd" />
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.34 16.5c-.77.833.192 2.5 1.732 2.5z" />
           </svg>
         );
       case 'info':
         return (
-          <svg className="w-5 h-5" fill="currentColor" viewBox="0 0 20 20">
-            <path fillRule="evenodd" d="M18 10a8 8 0 11-16 0 8 8 0 0116 0zm-7-4a1 1 0 11-2 0 1 1 0 012 0zM9 9a1 1 0 000 2v3a1 1 0 001 1h1a1 1 0 100-2v-3a1 1 0 00-1-1H9z" clipRule="evenodd" />
+          <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z" />
           </svg>
         );
     }
   };
 
-  const getStyles = () => {
-    const baseStyles = "flex items-center w-full max-w-xs p-4 text-gray-500 bg-white rounded-lg shadow dark:text-gray-400 dark:bg-gray-800";
+  const getColors = () => {
     switch (type) {
       case 'success':
-        return `${baseStyles} text-green-500 bg-green-50 dark:bg-green-800 dark:text-green-200`;
+        return {
+          bg: 'bg-white dark:bg-gray-800',
+          border: 'border-l-4 border-green-500',
+          iconBg: 'bg-green-100 dark:bg-green-900',
+          iconColor: 'text-green-600 dark:text-green-400',
+          progressColor: 'bg-green-500',
+          shadow: 'shadow-lg shadow-green-500/20'
+        };
       case 'error':
-        return `${baseStyles} text-red-500 bg-red-50 dark:bg-red-800 dark:text-red-200`;
+        return {
+          bg: 'bg-white dark:bg-gray-800',
+          border: 'border-l-4 border-red-500',
+          iconBg: 'bg-red-100 dark:bg-red-900',
+          iconColor: 'text-red-600 dark:text-red-400',
+          progressColor: 'bg-red-500',
+          shadow: 'shadow-lg shadow-red-500/20'
+        };
       case 'warning':
-        return `${baseStyles} text-orange-500 bg-orange-50 dark:bg-orange-800 dark:text-orange-200`;
+        return {
+          bg: 'bg-white dark:bg-gray-800',
+          border: 'border-l-4 border-amber-500',
+          iconBg: 'bg-amber-100 dark:bg-amber-900',
+          iconColor: 'text-amber-600 dark:text-amber-400',
+          progressColor: 'bg-amber-500',
+          shadow: 'shadow-lg shadow-amber-500/20'
+        };
       case 'info':
-        return `${baseStyles} text-blue-500 bg-blue-50 dark:bg-blue-800 dark:text-blue-200`;
-      default:
-        return baseStyles;
+        return {
+          bg: 'bg-white dark:bg-gray-800',
+          border: 'border-l-4 border-blue-500',
+          iconBg: 'bg-blue-100 dark:bg-blue-900',
+          iconColor: 'text-blue-600 dark:text-blue-400',
+          progressColor: 'bg-blue-500',
+          shadow: 'shadow-lg shadow-blue-500/20'
+        };
     }
+  };
+
+  const colors = getColors();
+
+  const handleClose = () => {
+    setIsLeaving(true);
+    setTimeout(() => onClose(id), 400);
   };
 
   return (
     <div
-      className={`${getStyles()} transition-all duration-300 transform ${
-        isLeaving ? 'opacity-0 translate-x-full' : 'opacity-100 translate-x-0'
-      }`}
+      className={`
+        relative w-full max-w-sm p-4 ${colors.bg} ${colors.border} ${colors.shadow}
+        rounded-lg backdrop-blur-sm border border-gray-200 dark:border-gray-700
+        transform transition-all duration-400 ease-in-out
+        ${isVisible && !isLeaving ? 'translate-x-0 opacity-100 scale-100' : 'translate-x-full opacity-0 scale-95'}
+      `}
       role="alert"
     >
-      <div className={`inline-flex items-center justify-center flex-shrink-0 w-8 h-8 rounded-lg ${
-        type === 'success' ? 'text-green-500 bg-green-100 dark:bg-green-800 dark:text-green-200' :
-        type === 'error' ? 'text-red-500 bg-red-100 dark:bg-red-800 dark:text-red-200' :
-        type === 'warning' ? 'text-orange-500 bg-orange-100 dark:bg-orange-800 dark:text-orange-200' :
-        'text-blue-500 bg-blue-100 dark:bg-blue-800 dark:text-blue-200'
-      }`}>
-        {getIcon()}
+      {/* Progress bar */}
+      <div className="absolute top-0 left-0 right-0 h-1 bg-gray-200 dark:bg-gray-700 rounded-t-lg overflow-hidden">
+        <div
+          className={`h-full ${colors.progressColor} transition-all duration-100 ease-linear`}
+          style={{ width: `${progress}%` }}
+        />
       </div>
-      <div className="ml-3 text-sm font-normal">{message}</div>
-      <button
-        type="button"
-        className="ml-auto -mx-1.5 -my-1.5 bg-white text-gray-400 hover:text-gray-900 rounded-lg focus:ring-2 focus:ring-gray-300 p-1.5 hover:bg-gray-100 inline-flex h-8 w-8 dark:text-gray-500 dark:hover:text-white dark:bg-gray-800 dark:hover:bg-gray-700"
-        onClick={() => {
-          setIsLeaving(true);
-          setTimeout(() => onClose(id), 300);
-        }}
-      >
-        <span className="sr-only">Close</span>
-        <svg className="w-3 h-3" fill="none" viewBox="0 0 14 14">
-          <path stroke="currentColor" strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="m1 1 6 6m0 0 6 6M7 7l6-6M7 7l-6 6"/>
-        </svg>
-      </button>
+
+      <div className="flex items-start">
+        {/* Icon */}
+        <div className={`flex-shrink-0 w-10 h-10 ${colors.iconBg} ${colors.iconColor} rounded-full flex items-center justify-center mr-3`}>
+          {getIcon()}
+        </div>
+
+        {/* Content */}
+        <div className="flex-1 min-w-0">
+          <p className="text-sm font-medium text-gray-900 dark:text-gray-100 leading-5">
+            {message}
+          </p>
+        </div>
+
+        {/* Close button */}
+        <button
+          type="button"
+          onClick={handleClose}
+          className="flex-shrink-0 ml-3 inline-flex text-gray-400 hover:text-gray-600 dark:text-gray-500 dark:hover:text-gray-300 focus:outline-none focus:ring-2 focus:ring-gray-300 dark:focus:ring-gray-600 rounded-lg p-1.5 hover:bg-gray-100 dark:hover:bg-gray-700 transition-colors duration-200"
+        >
+          <span className="sr-only">Cerrar</span>
+          <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+            <path strokeLinecap="round" strokeLinejoin="round" strokeWidth="2" d="M6 18L18 6M6 6l12 12" />
+          </svg>
+        </button>
+      </div>
     </div>
   );
 };
 
 export interface ToastContextType {
-  showToast: (message: string, type: ToastProps['type']) => void;
+  showToast: (message: string, type: ToastProps['type'], duration?: number) => void;
 }
 
 const ToastContext = React.createContext<ToastContextType | undefined>(undefined);
@@ -119,15 +180,21 @@ export const useToast = () => {
 export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ children }) => {
   const [toasts, setToasts] = useState<ToastProps[]>([]);
 
-  const showToast = (message: string, type: ToastProps['type']) => {
+  const showToast = (message: string, type: ToastProps['type'], duration?: number) => {
     const id = Math.random().toString(36).substr(2, 9);
     const newToast: ToastProps = {
       id,
       message,
       type,
+      duration,
       onClose: removeToast,
     };
-    setToasts(prev => [...prev, newToast]);
+    
+    // Limit to max 5 toasts
+    setToasts(prev => {
+      const newToasts = [...prev, newToast];
+      return newToasts.length > 5 ? newToasts.slice(-5) : newToasts;
+    });
   };
 
   const removeToast = (id: string) => {
@@ -137,10 +204,22 @@ export const ToastProvider: React.FC<{ children: React.ReactNode }> = ({ childre
   return (
     <ToastContext.Provider value={{ showToast }}>
       {children}
-      <div className="fixed top-4 right-4 z-50 space-y-2">
-        {toasts.map(toast => (
-          <Toast key={toast.id} {...toast} />
-        ))}
+      
+      {/* Toast Container */}
+      <div className="fixed top-4 right-4 z-[9999] pointer-events-none">
+        <div className="flex flex-col gap-3 w-full max-w-sm">
+          {toasts.map((toast, index) => (
+            <div 
+              key={toast.id} 
+              className="pointer-events-auto"
+              style={{
+                zIndex: 9999 - index, // Stack toasts properly
+              }}
+            >
+              <Toast {...toast} />
+            </div>
+          ))}
+        </div>
       </div>
     </ToastContext.Provider>
   );

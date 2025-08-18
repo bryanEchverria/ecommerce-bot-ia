@@ -1,0 +1,110 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Toast Notifications Demo</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .demo-container {
+            max-width: 600px;
+            margin: 0 auto;
+            background: white;
+            padding: 30px;
+            border-radius: 10px;
+            box-shadow: 0 4px 6px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+            text-align: center;
+            margin-bottom: 30px;
+        }
+        .improvement {
+            background: #f8f9fa;
+            border-left: 4px solid #28a745;
+            padding: 15px;
+            margin: 10px 0;
+            border-radius: 4px;
+        }
+        .improvement h3 {
+            margin: 0 0 10px 0;
+            color: #28a745;
+        }
+        .improvement p {
+            margin: 0;
+            color: #666;
+        }
+        .demo-note {
+            background: #e3f2fd;
+            border: 1px solid #2196f3;
+            padding: 15px;
+            border-radius: 5px;
+            margin-top: 20px;
+        }
+    </style>
+</head>
+<body>
+    <div class="demo-container">
+        <h1>🎉 Toast Notifications Mejoradas</h1>
+        
+        <div class="improvement">
+            <h3>🎨 Diseño Visual Renovado</h3>
+            <p>Nuevo diseño moderno con bordes de color, sombras mejoradas y mejor contraste en modo oscuro</p>
+        </div>
+
+        <div class="improvement">
+            <h3>⏱️ Barra de Progreso</h3>
+            <p>Barra animada en la parte superior que muestra visualmente el tiempo restante antes del auto-cierre</p>
+        </div>
+
+        <div class="improvement">
+            <h3>✨ Animaciones Suaves</h3>
+            <p>Animaciones de entrada y salida más fluidas (400ms) con efectos de escala y translación</p>
+        </div>
+
+        <div class="improvement">
+            <h3>🎯 Iconos Renovados</h3>
+            <p>Iconos outline más elegantes y consistentes para cada tipo de notificación</p>
+        </div>
+
+        <div class="improvement">
+            <h3>🔢 Gestión Inteligente</h3>
+            <p>Máximo 5 toasts simultáneos con z-index automático y limpieza inteligente</p>
+        </div>
+
+        <div class="improvement">
+            <h3>⚙️ Duración Personalizable</h3>
+            <p>Soporte para duraciones personalizadas por tipo de notificación</p>
+        </div>
+
+        <div class="demo-note">
+            <strong>📋 Para probar las mejoras:</strong><br>
+            1. Ve a http://localhost:3000<br>
+            2. Crea un nuevo producto<br>
+            3. Edita el estado de un producto<br>
+            4. Cambia el estado de un pedido<br>
+            5. Observa las nuevas notificaciones mejoradas
+        </div>
+
+        <h2>🎨 Tipos de Notificación</h2>
+        <div style="display: grid; gap: 15px; margin-top: 20px;">
+            <div style="background: #d4edda; border: 1px solid #c3e6cb; padding: 15px; border-radius: 5px;">
+                <strong>🟢 Success:</strong> Verde con checkmark - Para operaciones exitosas
+            </div>
+            <div style="background: #f8d7da; border: 1px solid #f5c6cb; padding: 15px; border-radius: 5px;">
+                <strong>🔴 Error:</strong> Rojo con X - Para errores y fallos
+            </div>
+            <div style="background: #fff3cd; border: 1px solid #ffeaa7; padding: 15px; border-radius: 5px;">
+                <strong>🟡 Warning:</strong> Ámbar con triángulo - Para advertencias
+            </div>
+            <div style="background: #d1ecf1; border: 1px solid #bee5eb; padding: 15px; border-radius: 5px;">
+                <strong>🔵 Info:</strong> Azul con círculo - Para información general
+            </div>
+        </div>
+    </div>
+</body>
+</html>

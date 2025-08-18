@@ -1,4 +1,4 @@
-const API_BASE_URL = 'http://127.0.0.1:8000/api';
+const API_BASE_URL = 'http://127.0.0.1:8002/api';
 
 // Generic API request function
 async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T> {
@@ -21,7 +21,19 @@ async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T
       throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
     }
 
-    return await response.json();
+    // Handle responses - try to parse JSON, fallback to success indicator
+    try {
+      const text = await response.text();
+      if (text) {
+        return JSON.parse(text);
+      } else {
+        // Empty response body
+        return { success: true, status: response.status } as T;
+      }
+    } catch (jsonError) {
+      // If JSON parsing fails, return success indicator for successful HTTP status
+      return { success: true, status: response.status } as T;
+    }
   } catch (error) {
     console.error(`API request failed: ${endpoint}`, error);
     throw error;

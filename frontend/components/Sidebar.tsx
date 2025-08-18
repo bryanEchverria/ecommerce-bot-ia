@@ -10,7 +10,7 @@ const NavItem: React.FC<{ to: string; children: React.ReactNode; }> = ({ to, chi
   const isActive = !!match;
 
   const activeClass = 'bg-primary/20 text-primary';
-  const inactiveClass = 'text-on-surface-secondary hover:bg-surface hover:text-on-surface';
+  const inactiveClass = 'text-on-surface-secondary-light dark:text-on-surface-secondary-dark hover:bg-surface-light dark:hover:bg-surface-dark hover:text-on-surface-light dark:hover:text-on-surface-dark';
 
   return (
     <button
@@ -27,13 +27,13 @@ const Sidebar: React.FC = () => {
   const { t } = useTranslation();
 
   return (
-    <aside className="w-64 flex-shrink-0 bg-secondary p-6 hidden md:flex flex-col justify-between">
+    <aside className="w-64 flex-shrink-0 bg-secondary-light dark:bg-secondary-dark p-6 hidden md:flex flex-col justify-between">
       <div>
         <div className="flex items-center gap-3 mb-10 px-2">
           <div className="bg-primary p-2 rounded-lg">
             <ZapIcon className="h-6 w-6 text-white" />
           </div>
-          <h1 className="text-xl font-bold text-on-surface">{t('sidebar.title')}</h1>
+          <h1 className="text-xl font-bold text-on-surface-light dark:text-on-surface-dark">{t('sidebar.title')}</h1>
         </div>
         <nav className="flex flex-col gap-3">
           <NavItem to="/">
@@ -62,9 +62,9 @@ const Sidebar: React.FC = () => {
           </NavItem>
         </nav>
       </div>
-      <div className="px-4 py-3 rounded-lg bg-surface text-center">
-        <p className="text-sm text-on-surface-secondary">{t('sidebar.copyright')}</p>
-        <p className="text-xs text-on-surface-secondary/70">{t('sidebar.rightsReserved')}</p>
+      <div className="px-4 py-3 rounded-lg bg-surface-light dark:bg-surface-dark text-center">
+        <p className="text-sm text-on-surface-secondary-light dark:text-on-surface-secondary-dark">{t('sidebar.copyright')}</p>
+        <p className="text-xs text-on-surface-secondary-light/70 dark:text-on-surface-secondary-dark/70">{t('sidebar.rightsReserved')}</p>
       </div>
     </aside>
   );

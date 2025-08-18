@@ -89,12 +89,12 @@ const Clients: React.FC = () => {
 
     return (
         <>
-            <div className="bg-surface rounded-xl shadow-lg">
-                <div className="p-6 border-b border-white/10">
+            <div className="bg-surface-light dark:bg-surface-dark rounded-xl shadow-lg">
+                <div className="p-6 border-b border-gray-200 dark:border-white/10">
                     <div className="flex justify-between items-center">
                         <div>
-                            <h2 className="text-xl font-semibold text-on-surface">{t('clients.title')}</h2>
-                            <p className="text-sm text-on-surface-secondary mt-1">{t('clients.description')}</p>
+                            <h2 className="text-xl font-semibold text-on-surface-light dark:text-on-surface-dark">{t('clients.title')}</h2>
+                            <p className="text-sm text-on-surface-secondary-light dark:text-on-surface-secondary-dark mt-1">{t('clients.description')}</p>
                         </div>
                         <button onClick={handleAddClient} className="flex items-center gap-2 bg-primary text-white font-semibold py-2 px-4 rounded-lg hover:bg-primary/90 transition-colors">
                             <PlusIcon className="h-5 w-5" />
@@ -107,14 +107,14 @@ const Clients: React.FC = () => {
                             placeholder={t('clients.searchPlaceholder')}
                             value={searchTerm}
                             onChange={(e) => setSearchTerm(e.target.value)}
-                            className="w-full bg-background border border-white/10 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary"
+                            className="w-full bg-background-light dark:bg-background-dark border border-gray-200 dark:border-white/10 rounded-lg py-2 px-3 focus:outline-none focus:ring-2 focus:ring-primary"
                         />
                     </div>
                 </div>
                 <div className="overflow-x-auto">
                     <table className="w-full text-left">
                         <thead className="bg-white/5">
-                            <tr className="text-sm text-on-surface-secondary">
+                            <tr className="text-sm text-on-surface-secondary-light dark:text-on-surface-secondary-dark">
                                 <th className="py-3 px-6 font-semibold">{t('clients.headers.client')}</th>
                                 <th className="py-3 px-6 font-semibold">{t('clients.headers.phone')}</th>
                                 <th className="py-3 px-6 font-semibold">{t('clients.headers.joinDate')}</th>
@@ -125,7 +125,7 @@ const Clients: React.FC = () => {
                         <tbody>
                             {filteredClients.length > 0 ? (
                                 filteredClients.map((client) => (
-                                    <tr key={client.id} className="border-b border-white/10 hover:bg-white/5 transition-colors group">
+                                    <tr key={client.id} className="border-b border-gray-200 dark:border-white/10 hover:bg-gray-50 dark:hover:bg-white/5 transition-colors group">
                                         <td className="py-4 px-6">
                                             <div
                                                 className="flex items-center gap-4 cursor-pointer"
@@ -133,8 +133,8 @@ const Clients: React.FC = () => {
                                             >
                                                 <img src={client.avatarUrl} alt={client.name} className="h-10 w-10 rounded-full object-cover" />
                                                 <div>
-                                                    <p className="font-semibold text-on-surface group-hover:text-primary transition-colors">{client.name}</p>
-                                                    <p className="text-xs text-on-surface-secondary">{client.email}</p>
+                                                    <p className="font-semibold text-on-surface-light dark:text-on-surface-dark group-hover:text-primary transition-colors">{client.name}</p>
+                                                    <p className="text-xs text-on-surface-secondary-light dark:text-on-surface-secondary-dark">{client.email}</p>
                                                 </div>
                                             </div>
                                         </td>
@@ -144,7 +144,7 @@ const Clients: React.FC = () => {
                                         <td className="py-4 px-6 text-center">
                                             <div className="flex items-center justify-center gap-2">
                                                 <button onClick={() => handleEditClient(client)} className="text-primary hover:underline text-sm font-semibold">{t('common.edit')}</button>
-                                                <button onClick={() => handleInitiateDelete(client.id)} aria-label={t('confirmationModal.titles.client')} className="text-red-500/80 hover:text-red-500 p-1 rounded-full hover:bg-white/10 transition-colors">
+                                                <button onClick={() => handleInitiateDelete(client.id)} aria-label={t('confirmationModal.titles.client')} className="text-red-500/80 hover:text-red-500 p-1 rounded-full hover:bg-gray-100 dark:hover:bg-white/10 transition-colors">
                                                     <TrashIcon className="h-5 w-5" />
                                                 </button>
                                             </div>
@@ -153,7 +153,7 @@ const Clients: React.FC = () => {
                                 ))
                             ) : (
                                 <tr>
-                                    <td colSpan={5} className="text-center py-12 text-on-surface-secondary">
+                                    <td colSpan={5} className="text-center py-12 text-on-surface-secondary-light dark:text-on-surface-secondary-dark">
                                         {t('clients.noClients')}
                                     </td>
                                 </tr>
@@ -161,7 +161,7 @@ const Clients: React.FC = () => {
                         </tbody>
                     </table>
                 </div>
-                <div className="p-4 border-t border-white/10 text-sm text-on-surface-secondary text-center">
+                <div className="p-4 border-t border-gray-200 dark:border-white/10 text-sm text-on-surface-secondary-light dark:text-on-surface-secondary-dark text-center">
                     {t('clients.showingCount', { count: filteredClients.length, total: clients.length })}
                 </div>
             </div>

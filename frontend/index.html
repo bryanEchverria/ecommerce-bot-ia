@@ -8,15 +8,36 @@
     <script src="https://cdn.tailwindcss.com"></script>
     <script>
       tailwind.config = {
+        darkMode: 'class',
         theme: {
           extend: {
             colors: {
               'primary': '#4f46e5',
-              'secondary': '#1f2937',
-              'background': '#111827',
-              'surface': '#1f2937',
-              'on-surface': '#f9fafb',
-              'on-surface-secondary': '#9ca3af',
+              'secondary': {
+                light: '#f3f4f6',
+                dark: '#1f2937',
+                DEFAULT: '#1f2937'
+              },
+              'background': {
+                light: '#ffffff',
+                dark: '#111827',
+                DEFAULT: '#111827'
+              },
+              'surface': {
+                light: '#f9fafb',
+                dark: '#1f2937',
+                DEFAULT: '#1f2937'
+              },
+              'on-surface': {
+                light: '#111827',
+                dark: '#f9fafb',
+                DEFAULT: '#f9fafb'
+              },
+              'on-surface-secondary': {
+                light: '#6b7280',
+                dark: '#9ca3af',
+                DEFAULT: '#9ca3af'
+              },
             }
           }
         }
@@ -41,7 +62,7 @@
 }
 </script>
 </head>
-  <body class="bg-background">
+  <body class="bg-background-light dark:bg-background-dark">
     <div id="root"></div>
     <script type="module" src="/index.tsx"></script>
   </body>

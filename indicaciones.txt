@@ -1,0 +1,131 @@
+Modelo multi-tenant (single DB)
+
+Un solo esquema/BD.
+
+Todas las tablas de negocio tienen columna client_id (UUID) NOT NULL + índice.
+
+Para login simple: cada usuario pertenece a un solo cliente.
+
+Tablas mínimas:
+
+clients(id uuid pk, name text, slug text unique, created_at timestamptz)
+
+users(id uuid pk, client_id uuid fk -> clients.id, email text, password_hash text, role text, is_active bool, created_at)
+
+Ejemplos de tablas de negocio (crea una de muestra): orders(id, client_id, code, created_at, ...) con UNIQUE(client_id, code).
+
+Requisitos backend
+
+Alembic: genera migraciones para clients, users y una tabla de negocio de ejemplo (orders) con client_id.
+
+Auth:
+
+Registro /auth/register: crea client y el user owner o (alternativo) crear usuario en un client existente si se pasa client_slug.
+
+Login /auth/login: email + password → responde {access_token, refresh_token, token_type, user: {id,email,role}, client: {id,slug,name}}.
+
+Refresh /auth/refresh.
+
+Logout (invalidación simple en cliente; en servidor solo verifica expiración).
+
+Hash de password con bcrypt.
+
+JWT con claims: sub (user_id), client_id, role, exp, iat.
+
+Variables de entorno: JWT_SECRET, JWT_ALG=HS256, ACCESS_TTL_MIN=15, REFRESH_TTL_DAYS=7.
+
+Tenant resolution:
+
+Middleware/Dependency get_current_user_and_client que:
+
+Lee Authorization: Bearer.
+
+Extrae client_id del token.
+
+Carga user y verifica is_active.
+
+Filtra automáticamente todas las queries por client_id (helper de sesión/Query).
+
+Acepta opcionalmente header X-Client-Slug para validar que coincide con el client_id del token (útil para subdominios/futuros).
+
+Rutas protegidas de ejemplo:
+
+GET /me → retorna user + client.
+
+CRUD orders (/orders): todas las operaciones siempre filtran por client_id del usuario autenticado. Demuestra UNIQUE(client_id, code).
+
+Capa ORM:
+
+Mixin TenantScoped con client_id.
+
+Helpers: def tenant_query(session, model, client_id): ...
+
+Validaciones al crear/leer/actualizar: nunca permitir CRUD sin client_id.
+
+Configuración:
+
+DATABASE_URL=postgresql+psycopg://user:pass@localhost:5432/app
+
+Script app/main.py con FastAPI, routers auth, orders.
+
+Instrucciones alembic init, env, y comando para generar/ejecutar migraciones.
+
+Tests (pytest): test de registro, login, acceso a /me, y que orders de un client no sean visibles desde otro.
+
+Requisitos frontend
+
+Estructura: src/main.tsx, src/App.tsx, src/routes/Login.tsx, src/routes/Dashboard.tsx, src/components/ProtectedRoute.tsx, src/auth/AuthContext.tsx, src/api/client.ts.
+
+Flujo:
+
+Página Login (email/password) → llama /auth/login y guarda access_token, refresh_token, user, client en localStorage.
+
+AuthContext: expone login, logout, isAuthenticated, user, client. Auto-refresh del access token cuando falten < 60s.
+
+ProtectedRoute: redirige a /login si no autenticado.
+
+Dashboard con ejemplo de listado/creación de orders usando el access_token y mostrando que todo queda aislado por client_id (del token).
+
+Fetch wrapper:
+
+Añade Authorization: Bearer <access_token> en cada request.
+
+Si 401 por expiración, intenta /auth/refresh una vez y repite.
+
+UX básica: formularios simples con validación mínima.
+
+Seguridad y buenas prácticas
+
+Sanitizar entradas.
+
+Respuestas con Pydantic schemas (no exponer password_hash).
+
+NUNCA permitir pasar client_id desde el frontend en el cuerpo: el servidor lo toma del token.
+
+Índices: users(email unique), users(client_id), orders(client_id, created_at), UNIQUE(orders.client_id, orders.code).
+
+Si quieres, muestra cómo usar RLS en Postgres, pero mantenlo opcional y desactivado por defecto.
+
+Entregables
+
+Código backend completo (archivos .py) con instrucciones para ejecutar: uvicorn app.main:app --reload.
+
+Código frontend completo (archivos .tsx) con instrucciones: npm i && npm run dev.
+
+Comandos Alembic para crear y correr migraciones.
+
+3–5 pruebas pytest de los flujos clave.
+
+Datos seed opcionales para 2 clientes y 2 usuarios (para probar el aislamiento).
+
+Devuélveme:
+
+Estructura de carpetas.
+
+Archivos completos listos para copiar/pegar.
+
+Snippets de .env.example.
+
+Pasos para levantar todo en local (DB, migraciones, server, web).
+
+Breve explicación de cómo se asegura el aislamiento por client_id.

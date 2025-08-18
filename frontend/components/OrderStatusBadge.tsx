@@ -13,14 +13,16 @@ export const OrderStatusBadge: React.FC<OrderStatusBadgeProps> = ({ status }) =>
 
   const statusStyles: Record<OrderStatus, string> = {
     [OrderStatus.Pending]: 'bg-yellow-500/20 text-yellow-400',
-    [OrderStatus.Shipped]: 'bg-blue-500/20 text-blue-400',
+    [OrderStatus.Received]: 'bg-blue-500/20 text-blue-400',
+    [OrderStatus.Shipping]: 'bg-purple-500/20 text-purple-400',
     [OrderStatus.Delivered]: 'bg-green-500/20 text-green-400',
     [OrderStatus.Cancelled]: 'bg-red-500/20 text-red-400',
   };
 
   const statusDotStyles: Record<OrderStatus, string> = {
     [OrderStatus.Pending]: 'bg-yellow-400',
-    [OrderStatus.Shipped]: 'bg-blue-400',
+    [OrderStatus.Received]: 'bg-blue-400',
+    [OrderStatus.Shipping]: 'bg-purple-400',
     [OrderStatus.Delivered]: 'bg-green-400',
     [OrderStatus.Cancelled]: 'bg-red-400',
   };
