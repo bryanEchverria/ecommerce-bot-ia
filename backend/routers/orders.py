@@ -6,6 +6,7 @@ from database import get_async_db
 from models import Order as OrderModel
 from schemas import Order, OrderCreate, OrderUpdate
 import crud_async
+from auth import get_current_client
 
 router = APIRouter()
 
@@ -15,19 +16,23 @@ async def get_orders(
     limit: int = Query(100, ge=1, le=1000),
     status: Optional[str] = Query(None, description="Filter by status"),
     customer_name: Optional[str] = Query(None, description="Filter by customer name"),
-    client_id: Optional[str] = Query(None, description="Filter by client ID"),
-    db: AsyncSession = Depends(get_async_db)
+    db: AsyncSession = Depends(get_async_db),
+    current_client = Depends(get_current_client)
 ):
-    """Get orders with optional SQL-level filtering"""
+    """Get orders with optional SQL-level filtering - filtered by client"""
     return await crud_async.get_orders_async(
         db, skip=skip, limit=limit, status=status, 
-        customer_name=customer_name, client_id=client_id
+        customer_name=customer_name, client_id=current_client.id
     )
 
 @router.get("/orders/{order_id}", response_model=Order)
-async def get_order(order_id: str, db: AsyncSession = Depends(get_async_db)):
-    """Get a single order by ID"""
-    order = await crud_async.get_order_async(db, order_id=order_id)
+async def get_order(
+    order_id: str, 
+    db: AsyncSession = Depends(get_async_db),
+    current_client = Depends(get_current_client)
+):
+    """Get a single order by ID - filtered by client"""
+    order = await crud_async.get_order_async(db, order_id=order_id, client_id=current_client.id)
     if order is None:
         raise HTTPException(status_code=404, detail="Order not found")
     return order

@@ -6,7 +6,7 @@ import { DownloadIcon, PencilIcon } from './Icons';
 import { useTranslation } from 'react-i18next';
 import { useCurrency, formatCurrency } from './CurrencyContext';
 import { Order, OrderStatus } from '../types';
-import { ordersApi } from '../services/api';
+import { tenantOrdersApi as ordersApi } from '../services/tenant-api';
 import { useToast } from './Toast';
 import OrderDetailsModal from './OrderDetailsModal';
 
@@ -62,15 +62,15 @@ const Orders: React.FC = () => {
                 setLoading(true);
                 const ordersData = await ordersApi.getAll();
                 
-                // Transform API data to match frontend types
+                // Transform tenant API data to match frontend types
                 const transformedOrders = ordersData.map(o => ({
                     id: o.id,
-                    orderNumber: o.order_number,
+                    orderNumber: o.code, // tenant API uses 'code' instead of 'order_number'
                     customerName: o.customer_name,
-                    date: o.date,
-                    items: o.items,
+                    date: o.created_at || o.date, // tenant API uses 'created_at' instead of 'date'
+                    items: o.items || 1, // default to 1 if not present
                     status: o.status,
-                    total: o.total
+                    total: typeof o.total === 'string' ? parseFloat(o.total) : o.total // tenant API sends total as string
                 }));
                 
                 setOrders(transformedOrders);
@@ -91,24 +91,23 @@ const Orders: React.FC = () => {
             const orderToUpdate = orders.find(o => o.id === orderId);
             if (!orderToUpdate) return;
 
-            // Transform frontend data to API format
+            // Transform frontend data to tenant API format
             const apiOrder = {
+                code: orderToUpdate.orderNumber,
                 customer_name: orderToUpdate.customerName,
-                date: orderToUpdate.date,
-                items: orderToUpdate.items,
                 status: newStatus,
-                total: orderToUpdate.total
+                total: orderToUpdate.total.toString() // tenant API expects string
             };
 
             const updatedOrder = await ordersApi.update(orderId, apiOrder);
             const transformedOrder = {
                 id: updatedOrder.id,
-                orderNumber: updatedOrder.order_number,
+                orderNumber: updatedOrder.code, // tenant API uses 'code'
                 customerName: updatedOrder.customer_name,
-                date: updatedOrder.date,
-                items: updatedOrder.items,
+                date: updatedOrder.created_at || updatedOrder.date, // tenant API uses 'created_at'
+                items: updatedOrder.items || 1,
                 status: updatedOrder.status,
-                total: updatedOrder.total
+                total: typeof updatedOrder.total === 'string' ? parseFloat(updatedOrder.total) : updatedOrder.total
             };
 
             setOrders(orders.map(o => o.id === orderId ? transformedOrder : o));

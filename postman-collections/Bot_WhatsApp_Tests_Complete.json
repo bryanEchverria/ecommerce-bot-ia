@@ -1,0 +1,575 @@
+{
+  "info": {
+    "name": "Bot WhatsApp - Pruebas Completas 2025",
+    "description": "Colección completa para probar el bot WhatsApp con diferentes clientes y flujos de compra",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "variable": [
+    {
+      "key": "bot_url",
+      "value": "http://localhost:8001"
+    }
+  ],
+  "item": [
+    {
+      "name": "🏥 Health Check",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "{{bot_url}}/",
+          "host": ["{{bot_url}}"],
+          "path": [""]
+        }
+      }
+    },
+    {
+      "name": "🌿 Green House Tests",
+      "item": [
+        {
+          "name": "1. Saludo Green House",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"hola\"\n}"
+            },
+            "url": {
+              "raw": "{{bot_url}}/webhook",
+              "host": ["{{bot_url}}"],
+              "path": ["webhook"]
+            }
+          }
+        },
+        {
+          "name": "2. Ver productos Green House",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"que productos tienes\"\n}"
+            },
+            "url": {
+              "raw": "{{bot_url}}/webhook",
+              "host": ["{{bot_url}}"],
+              "path": ["webhook"]
+            }
+          }
+        },
+        {
+          "name": "3. 🎯 Comprar VAPO (Específico)",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"quiero comprar un vapo\"\n}"
+            },
+            "url": {
+              "raw": "{{bot_url}}/webhook",
+              "host": ["{{bot_url}}"],
+              "path": ["webhook"]
+            }
+          }
+        },
+        {
+          "name": "4. Especificar cantidad",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"2 unidades\"\n}"
+            },
+            "url": {
+              "raw": "{{bot_url}}/webhook",
+              "host": ["{{bot_url}}"],
+              "path": ["webhook"]
+            }
+          }
+        },
+        {
+          "name": "5. Confirmar compra",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"si\"\n}"
+            },
+            "url": {
+              "raw": "{{bot_url}}/webhook",
+              "host": ["{{bot_url}}"],
+              "path": ["webhook"]
+            }
+          }
+        },
+        {
+          "name": "6. Variaciones vaporizador",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"necesito un vaporizador\"\n}"
+            },
+            "url": {
+              "raw": "{{bot_url}}/webhook",
+              "host": ["{{bot_url}}"],
+              "path": ["webhook"]
+            }
+          }
+        },
+        {
+          "name": "7. Buscar PAX específico",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"comprar PAX\"\n}"
+            },
+            "url": {
+              "raw": "{{bot_url}}/webhook",
+              "host": ["{{bot_url}}"],
+              "path": ["webhook"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🏢 Demo Company Tests",
+      "item": [
+        {
+          "name": "1. Saludo Demo Company",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+1234567890\",\n  \"mensaje\": \"hola\"\n}"
+            },
+            "url": {
+              "raw": "{{bot_url}}/webhook",
+              "host": ["{{bot_url}}"],
+              "path": ["webhook"]
+            }
+          }
+        },
+        {
+          "name": "2. Buscar iPhone",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+1234567890\",\n  \"mensaje\": \"quiero un iPhone\"\n}"
+            },
+            "url": {
+              "raw": "{{bot_url}}/webhook",
+              "host": ["{{bot_url}}"],
+              "path": ["webhook"]
+            }
+          }
+        },
+        {
+          "name": "3. Buscar laptop",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+1234567890\",\n  \"mensaje\": \"necesito una laptop\"\n}"
+            },
+            "url": {
+              "raw": "{{bot_url}}/webhook",
+              "host": ["{{bot_url}}"],
+              "path": ["webhook"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🐕 Mundo Canino Tests",
+      "item": [
+        {
+          "name": "1. Saludo Mundo Canino",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+5678901234\",\n  \"mensaje\": \"hola\"\n}"
+            },
+            "url": {
+              "raw": "{{bot_url}}/webhook",
+              "host": ["{{bot_url}}"],
+              "path": ["webhook"]
+            }
+          }
+        },
+        {
+          "name": "2. Buscar comida para perros",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+5678901234\",\n  \"mensaje\": \"comida para perros\"\n}"
+            },
+            "url": {
+              "raw": "{{bot_url}}/webhook",
+              "host": ["{{bot_url}}"],
+              "path": ["webhook"]
+            }
+          }
+        },
+        {
+          "name": "3. Buscar collar",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+5678901234\",\n  \"mensaje\": \"quiero un collar antipulgas\"\n}"
+            },
+            "url": {
+              "raw": "{{bot_url}}/webhook",
+              "host": ["{{bot_url}}"],
+              "path": ["webhook"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "👕 Test Store Tests",
+      "item": [
+        {
+          "name": "1. Saludo Test Store",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+9876543210\",\n  \"mensaje\": \"hola\"\n}"
+            },
+            "url": {
+              "raw": "{{bot_url}}/webhook",
+              "host": ["{{bot_url}}"],
+              "path": ["webhook"]
+            }
+          }
+        },
+        {
+          "name": "2. Buscar camiseta",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+9876543210\",\n  \"mensaje\": \"quiero una camiseta\"\n}"
+            },
+            "url": {
+              "raw": "{{bot_url}}/webhook",
+              "host": ["{{bot_url}}"],
+              "path": ["webhook"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🧪 Tests Casos Extremos",
+      "item": [
+        {
+          "name": "1. Mensaje vacío",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"\"\n}"
+            },
+            "url": {
+              "raw": "{{bot_url}}/webhook",
+              "host": ["{{bot_url}}"],
+              "path": ["webhook"]
+            }
+          }
+        },
+        {
+          "name": "2. VAPO en mayúsculas",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"QUIERO UN VAPO\"\n}"
+            },
+            "url": {
+              "raw": "{{bot_url}}/webhook",
+              "host": ["{{bot_url}}"],
+              "path": ["webhook"]
+            }
+          }
+        },
+        {
+          "name": "3. Vapo con signos",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"vapo!!!\"\n}"
+            },
+            "url": {
+              "raw": "{{bot_url}}/webhook",
+              "host": ["{{bot_url}}"],
+              "path": ["webhook"]
+            }
+          }
+        },
+        {
+          "name": "4. Cantidad extrema",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"quiero 999 unidades\"\n}"
+            },
+            "url": {
+              "raw": "{{bot_url}}/webhook",
+              "host": ["{{bot_url}}"],
+              "path": ["webhook"]
+            }
+          }
+        },
+        {
+          "name": "5. Cliente no configurado",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+999999999\",\n  \"mensaje\": \"hola\"\n}"
+            },
+            "url": {
+              "raw": "{{bot_url}}/webhook",
+              "host": ["{{bot_url}}"],
+              "path": ["webhook"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "📋 Tests Estado Pedidos",
+      "item": [
+        {
+          "name": "1. Consultar orden específica",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"estado de mi pedido ORD-000123\"\n}"
+            },
+            "url": {
+              "raw": "{{bot_url}}/webhook",
+              "host": ["{{bot_url}}"],
+              "path": ["webhook"]
+            }
+          }
+        },
+        {
+          "name": "2. Consultar pago",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/json"
+              }
+            ],
+            "body": {
+              "mode": "raw",
+              "raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"ya se proceso mi pago?\"\n}"
+            },
+            "url": {
+              "raw": "{{bot_url}}/webhook",
+              "host": ["{{bot_url}}"],
+              "path": ["webhook"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "💳 Tests Flow Payment",
+      "item": [
+        {
+          "name": "1. Flow Confirm - Pago exitoso",
+          "request": {
+            "method": "POST",
+            "header": [
+              {
+                "key": "Content-Type",
+                "value": "application/x-www-form-urlencoded"
+              }
+            ],
+            "body": {
+              "mode": "urlencoded",
+              "urlencoded": [
+                {
+                  "key": "commerceOrder",
+                  "value": "test-order-123"
+                },
+                {
+                  "key": "status",
+                  "value": "CONFIRMED"
+                },
+                {
+                  "key": "signature",
+                  "value": "test-signature"
+                }
+              ]
+            },
+            "url": {
+              "raw": "{{bot_url}}/flow/confirm",
+              "host": ["{{bot_url}}"],
+              "path": ["flow", "confirm"]
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "🔍 Debug Endpoints",
+      "item": [
+        {
+          "name": "1. Debug conversaciones",
+          "request": {
+            "method": "GET",
+            "header": [],
+            "url": {
+              "raw": "{{bot_url}}/debug/conversaciones",
+              "host": ["{{bot_url}}"],
+              "path": ["debug", "conversaciones"]
+            }
+          }
+        }
+      ]
+    }
+  ]
+}

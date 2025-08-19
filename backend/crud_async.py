@@ -149,14 +149,20 @@ async def delete_product_async(db: AsyncSession, product_id: str, client_id: Opt
         await db.commit()
     return db_product
 
-async def get_low_stock_products_async(db: AsyncSession, threshold: int = 10):
-    """Get products with stock below threshold using SQL filtering"""
+async def get_low_stock_products_async(db: AsyncSession, threshold: int = 10, client_id: Optional[str] = None):
+    """Get products with stock below threshold using SQL filtering - filtered by client"""
     query = select(models.Product).where(
         and_(
             models.Product.stock <= threshold,
             models.Product.status == "Active"
         )
-    ).order_by(models.Product.stock.asc(), models.Product.name)
+    )
+    
+    # Apply client filter (CRITICAL for multi-tenant isolation)
+    if client_id:
+        query = query.where(models.Product.client_id == client_id)
+    
+    query = query.order_by(models.Product.stock.asc(), models.Product.name)
     
     result = await db.execute(query)
     return result.scalars().all()
@@ -259,11 +265,15 @@ async def delete_order_async(db: AsyncSession, order_id: str):
         await db.commit()
     return db_order
 
-async def get_order_async(db: AsyncSession, order_id: str):
-    """Get a single order by ID"""
-    result = await db.execute(
-        select(models.Order).where(models.Order.id == order_id)
-    )
+async def get_order_async(db: AsyncSession, order_id: str, client_id: Optional[str] = None):
+    """Get a single order by ID - optionally filtered by client"""
+    query = select(models.Order).where(models.Order.id == order_id)
+    
+    # Add client filter if provided (for multi-tenant isolation)
+    if client_id:
+        query = query.where(models.Order.client_id == client_id)
+    
+    result = await db.execute(query)
     return result.scalar_one_or_none()
 
 async def get_order_by_number_async(db: AsyncSession, order_number: str):
@@ -411,22 +421,38 @@ async def delete_campaign_async(db: AsyncSession, campaign_id: str):
 
 # ==================== DISCOUNTS ====================
 
-async def get_discount_async(db: AsyncSession, discount_id: str):
-    """Get a single discount by ID"""
-    result = await db.execute(
-        select(models.Discount).where(models.Discount.id == discount_id)
-    )
+async def get_discount_async(db: AsyncSession, discount_id: str, client_id: Optional[str] = None):
+    """Get a single discount by ID - optionally filtered by client"""
+    query = select(models.Discount).where(models.Discount.id == discount_id)
+    
+    # Add client filter if provided (for multi-tenant isolation)
+    if client_id:
+        query = query.where(models.Discount.client_id == client_id)
+    
+    result = await db.execute(query)
     return result.scalar_one_or_none()
 
-async def get_discounts_async(db: AsyncSession, skip: int = 0, limit: int = 100):
-    """Get discounts with pagination"""
-    query = select(models.Discount).order_by(desc(models.Discount.created_at)).offset(skip).limit(limit)
+async def get_discounts_async(db: AsyncSession, skip: int = 0, limit: int = 100, client_id: Optional[str] = None):
+    """Get discounts with pagination - filtered by client"""
+    query = select(models.Discount)
+    
+    # Apply client filter first (CRITICAL for multi-tenant isolation)
+    if client_id:
+        query = query.where(models.Discount.client_id == client_id)
+    
+    # Order by created_at desc and apply pagination
+    query = query.order_by(desc(models.Discount.created_at)).offset(skip).limit(limit)
     result = await db.execute(query)
     return result.scalars().all()
 
-async def get_active_discounts_async(db: AsyncSession):
-    """Get only active discounts"""
+async def get_active_discounts_async(db: AsyncSession, client_id: Optional[str] = None):
+    """Get only active discounts - filtered by client"""
     query = select(models.Discount).where(models.Discount.is_active == True)
+    
+    # Apply client filter (CRITICAL for multi-tenant isolation)
+    if client_id:
+        query = query.where(models.Discount.client_id == client_id)
+    
     result = await db.execute(query)
     return result.scalars().all()
 

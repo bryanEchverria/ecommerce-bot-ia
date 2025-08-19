@@ -72,6 +72,7 @@ class Discount(Base):
     __tablename__ = "discounts"
     
     id = Column(String, primary_key=True, index=True)
+    client_id = Column(String, index=True, nullable=False)  # REQUIRED for multi-tenant
     name = Column(String, index=True)
     type = Column(String)  # Percentage, FixedAmount
     value = Column(Float)

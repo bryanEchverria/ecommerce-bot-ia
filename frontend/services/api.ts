@@ -1,12 +1,25 @@
 const API_BASE_URL = 'http://127.0.0.1:8002/api';
 
-// Generic API request function
+// Get auth token from localStorage
+function getAuthToken(): string | null {
+  const authState = localStorage.getItem('authState');
+  if (authState) {
+    const parsed = JSON.parse(authState);
+    return parsed.access_token;
+  }
+  return null;
+}
+
+// Generic API request function with JWT authentication
 async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}${endpoint}`;
+  const token = getAuthToken();
+  
   const config: RequestInit = {
     mode: 'cors',
     headers: {
       'Content-Type': 'application/json',
+      ...(token && { 'Authorization': `Bearer ${token}` }),
       ...options?.headers,
     },
     ...options,
@@ -18,6 +31,13 @@ async function apiRequest<T>(endpoint: string, options?: RequestInit): Promise<T
     if (!response.ok) {
       const errorText = await response.text();
       console.error(`API Error ${response.status}:`, errorText);
+      
+      // If unauthorized, clear auth state and redirect to login
+      if (response.status === 401) {
+        localStorage.removeItem('authState');
+        window.location.reload();
+      }
+      
       throw new Error(`HTTP error! status: ${response.status} - ${errorText}`);
     }
 
