@@ -1,0 +1,651 @@
+{
+	"info": {
+		"_postman_id": "robust-webhook-context-2025",
+		"name": "🤖 Robust AI Webhook with Context - Complete Collection",
+		"description": "Colección completa para probar el webhook robusto con contexto avanzado, gestión de sesiones, y analytics.\n\n**Características:**\n- Contexto persistente con SQLite\n- Tracking de intención de compra\n- Gestión de etapas de conversación\n- Analytics de sesión en tiempo real\n- Multi-tenant con productos reales\n\n**Endpoints Disponibles:**\n- Webhook Principal (Puerto 9006)\n- Analytics de Sesión\n- Analytics Globales\n- Estado del Sistema",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "🏠 Sistema",
+			"item": [
+				{
+					"name": "Estado del Sistema",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:9006/",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": [""]
+						},
+						"description": "Verifica el estado del sistema de webhook robusto y muestra características disponibles."
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "💬 Webhook Principal",
+			"item": [
+				{
+					"name": "1️⃣ Saludo Inicial",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"hola, buenos días\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:9006/webhook",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["webhook"]
+						},
+						"description": "Primera interacción - establecer sesión y contexto inicial.\n\n**Cliente:** Green House (productos cannábicos)\n**Esperado:** Saludo personalizado, creación de sesión"
+					},
+					"response": []
+				},
+				{
+					"name": "2️⃣ Búsqueda de Productos",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"que productos tienen disponibles\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:9006/webhook",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["webhook"]
+						},
+						"description": "Búsqueda general de productos.\n\n**Esperado:** Lista de productos, stage cambia a 'browsing', intent score incrementa"
+					},
+					"response": []
+				},
+				{
+					"name": "3️⃣ Interés en Producto Específico",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"me interesa el iPhone 15 Pro Max\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:9006/webhook",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["webhook"]
+						},
+						"description": "Cliente muestra interés específico.\n\n**Esperado:** Stage 'interested', purchase intent sube significativamente"
+					},
+					"response": []
+				},
+				{
+					"name": "4️⃣ Consulta de Precio",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"cuánto cuesta exactamente\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:9006/webhook",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["webhook"]
+						},
+						"description": "Consulta específica de precio.\n\n**Esperado:** Stage 'negotiating', precio específico del producto"
+					},
+					"response": []
+				},
+				{
+					"name": "5️⃣ Intención de Compra",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"perfecto, lo quiero comprar\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:9006/webhook",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["webhook"]
+						},
+						"description": "Cliente declara intención de compra.\n\n**Esperado:** Stage 'purchasing', purchase intent cerca del 100%"
+					},
+					"response": []
+				},
+				{
+					"name": "6️⃣ Confirmación de Compra",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"sí, confirmo la compra\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:9006/webhook",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["webhook"]
+						},
+						"description": "Confirmación final de compra.\n\n**Esperado:** Proceso de orden, recolección de datos del cliente"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🏢 Multi-Tenant Tests",
+			"item": [
+				{
+					"name": "Green House - Productos Cannábicos",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"hola, busco semillas de calidad\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:9006/webhook",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["webhook"]
+						},
+						"description": "**Cliente:** Green House\n**Productos:** 14 disponibles\n**Especialidad:** Productos cannábicos y wellness"
+					},
+					"response": []
+				},
+				{
+					"name": "Demo Company - Tienda General",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefono\": \"+1234567890\",\n  \"mensaje\": \"hola, que productos manejan\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:9006/webhook",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["webhook"]
+						},
+						"description": "**Cliente:** Demo Company\n**Productos:** 11 disponibles\n**Especialidad:** Tienda general de productos"
+					},
+					"response": []
+				},
+				{
+					"name": "Mundo Canino - Productos para Mascotas",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefono\": \"+5678901234\",\n  \"mensaje\": \"necesito algo para mi perro\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:9006/webhook",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["webhook"]
+						},
+						"description": "**Cliente:** Mundo Canino\n**Productos:** 9 disponibles\n**Especialidad:** Todo para mascotas"
+					},
+					"response": []
+				},
+				{
+					"name": "Test Store - Productos de Calidad",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefono\": \"+9876543210\",\n  \"mensaje\": \"hola, que me recomiendan\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:9006/webhook",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["webhook"]
+						},
+						"description": "**Cliente:** Test Store\n**Productos:** 6 disponibles\n**Especialidad:** Productos de calidad"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "📊 Analytics",
+			"item": [
+				{
+					"name": "Analytics de Sesión - Green House",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:9006/analytics/session/+3456789012",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["analytics", "session", "+3456789012"]
+						},
+						"description": "Obtiene analytics detallados de la sesión específica.\n\n**Información incluida:**\n- Estado de conversación actual\n- Purchase intent score\n- Productos discutidos\n- Duración de sesión\n- Historial de mensajes recientes"
+					},
+					"response": []
+				},
+				{
+					"name": "Analytics de Sesión - Demo Company",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:9006/analytics/session/+1234567890",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["analytics", "session", "+1234567890"]
+						},
+						"description": "Analytics para el cliente Demo Company"
+					},
+					"response": []
+				},
+				{
+					"name": "Analytics Globales del Sistema",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "http://127.0.0.1:9006/analytics/global",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["analytics", "global"]
+						},
+						"description": "Estadísticas globales del sistema.\n\n**Métricas incluidas:**\n- Total de sesiones (últimos 7 días)\n- Promedio de mensajes por sesión\n- Duración promedio de sesión\n- Compras completadas\n- Tasa de intención de compra\n- Sesiones activas actuales"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🧪 Casos de Prueba Específicos",
+			"item": [
+				{
+					"name": "Test: Producto No Disponible",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"busco un Tesla Model S\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:9006/webhook",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["webhook"]
+						},
+						"description": "Prueba cómo maneja el sistema productos no disponibles.\n\n**Esperado:** Sugerencia de productos alternativos disponibles"
+					},
+					"response": []
+				},
+				{
+					"name": "Test: Contexto de Conversación Larga",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"recordamos que había preguntado por el precio del iPhone hace un rato\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:9006/webhook",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["webhook"]
+						},
+						"description": "Prueba la memoria del contexto de conversaciones anteriores.\n\n**Esperado:** Referencia a conversación previa sobre iPhone"
+					},
+					"response": []
+				},
+				{
+					"name": "Test: Múltiples Productos en Un Mensaje",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"quiero un iPhone, unos AirPods y también un MacBook para trabajar\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:9006/webhook",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["webhook"]
+						},
+						"description": "Prueba el manejo de múltiples productos en una sola consulta.\n\n**Esperado:** Tracking de los 3 productos mencionados"
+					},
+					"response": []
+				},
+				{
+					"name": "Test: Negociación de Precio",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefono\": \"+3456789012\",\n  \"mensaje\": \"ese precio está muy caro, tienen algún descuento o promoción\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:9006/webhook",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["webhook"]
+						},
+						"description": "Prueba la etapa de negociación.\n\n**Esperado:** Stage 'negotiating', manejo de objeciones de precio"
+					},
+					"response": []
+				}
+			]
+		},
+		{
+			"name": "🔄 Flujo Completo de Compra",
+			"item": [
+				{
+					"name": "Paso 1: Nuevo Cliente - Saludo",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefono\": \"+3456789999\",\n  \"mensaje\": \"hola, buenos días\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:9006/webhook",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["webhook"]
+						},
+						"description": "**FLUJO COMPLETO - PASO 1**\nNuevo cliente inicia conversación"
+					},
+					"response": []
+				},
+				{
+					"name": "Paso 2: Búsqueda Inicial",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefono\": \"+3456789999\",\n  \"mensaje\": \"estoy buscando un smartphone nuevo\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:9006/webhook",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["webhook"]
+						},
+						"description": "**FLUJO COMPLETO - PASO 2**\nCliente expresa necesidad específica"
+					},
+					"response": []
+				},
+				{
+					"name": "Paso 3: Interés Específico",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefono\": \"+3456789999\",\n  \"mensaje\": \"me gusta el Samsung Galaxy S24 Ultra\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:9006/webhook",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["webhook"]
+						},
+						"description": "**FLUJO COMPLETO - PASO 3**\nCliente muestra interés en producto específico"
+					},
+					"response": []
+				},
+				{
+					"name": "Paso 4: Consulta Detalles",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefono\": \"+3456789999\",\n  \"mensaje\": \"cuál es el precio y qué garantía incluye\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:9006/webhook",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["webhook"]
+						},
+						"description": "**FLUJO COMPLETO - PASO 4**\nConsulta detalles técnicos y comerciales"
+					},
+					"response": []
+				},
+				{
+					"name": "Paso 5: Decisión de Compra",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefono\": \"+3456789999\",\n  \"mensaje\": \"perfecto, quiero comprarlo\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:9006/webhook",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["webhook"]
+						},
+						"description": "**FLUJO COMPLETO - PASO 5**\nDecisión de compra tomada"
+					},
+					"response": []
+				},
+				{
+					"name": "Paso 6: Confirmación Final",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefono\": \"+3456789999\",\n  \"mensaje\": \"sí, confirmo la compra del Samsung Galaxy S24 Ultra\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:9006/webhook",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["webhook"]
+						},
+						"description": "**FLUJO COMPLETO - PASO 6**\nConfirmación final de la compra"
+					},
+					"response": []
+				},
+				{
+					"name": "Paso 7: Datos del Cliente",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n  \"telefono\": \"+3456789999\",\n  \"mensaje\": \"mi nombre es María González, dirección: Las Condes 456, Santiago\"\n}"
+						},
+						"url": {
+							"raw": "http://127.0.0.1:9006/webhook",
+							"protocol": "http",
+							"host": ["127", "0", "0", "1"],
+							"port": "9006",
+							"path": ["webhook"]
+						},
+						"description": "**FLUJO COMPLETO - PASO 7**\nRecolección de datos para la orden"
+					},
+					"response": []
+				}
+			]
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://127.0.0.1:9006",
+			"type": "string"
+		},
+		{
+			"key": "green_house_phone",
+			"value": "+3456789012",
+			"type": "string"
+		},
+		{
+			"key": "demo_company_phone",
+			"value": "+1234567890",
+			"type": "string"
+		},
+		{
+			"key": "test_customer_phone",
+			"value": "+3456789999",
+			"type": "string"
+		}
+	]
+}

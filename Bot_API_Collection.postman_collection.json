@@ -1,0 +1,469 @@
+{
+	"info": {
+		"_postman_id": "bot-api-collection-2025",
+		"name": "🤖 Bot API - Sintestesia",
+		"description": "Colección completa para probar el flujo del bot desde conversación hasta creación de órdenes",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "🤖 Bot Conversation",
+			"item": [
+				{
+					"name": "1. Saludo Inicial",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"telefono\": \"+1234567890\",\n    \"mensaje\": \"Hola\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/bot/chat",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"bot",
+								"chat"
+							]
+						},
+						"description": "Inicia conversación con el bot usando número válido de Demo Company"
+					}
+				},
+				{
+					"name": "2. Consultar iPhone",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"telefono\": \"+1234567890\",\n    \"mensaje\": \"Quiero comprar un iPhone 15 Pro\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/bot/chat",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"bot",
+								"chat"
+							]
+						},
+						"description": "Consulta específica por iPhone 15 Pro"
+					}
+				},
+				{
+					"name": "3. Confirmar Compra",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"telefono\": \"+1234567890\",\n    \"mensaje\": \"si, confirmo la compra\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/bot/chat",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"bot",
+								"chat"
+							]
+						},
+						"description": "Confirma la intención de compra"
+					}
+				},
+				{
+					"name": "4. Bot Canábicos (Green House)",
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"telefono\": \"+3456789012\",\n    \"mensaje\": \"vapo\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/bot/chat",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"bot",
+								"chat"
+							]
+						},
+						"description": "Prueba el bot de productos canábicos con palabra clave sugerida"
+					}
+				}
+			],
+			"description": "Conversaciones de ejemplo con el bot"
+		},
+		{
+			"name": "🔐 Authentication",
+			"item": [
+				{
+					"name": "Login",
+					"event": [
+						{
+							"listen": "test",
+							"script": {
+								"exec": [
+									"// Guarda el token automáticamente",
+									"if (pm.response.code === 200) {",
+									"    const response = pm.response.json();",
+									"    pm.environment.set('token', response.access_token);",
+									"    pm.environment.set('refresh_token', response.refresh_token);",
+									"    console.log('Token guardado:', response.access_token.substring(0, 50) + '...');",
+									"}"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"email\": \"admin@sintestesia.cl\",\n    \"password\": \"Sintestesia2024\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/auth/login",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"login"
+							]
+						},
+						"description": "Login para obtener token de autenticación. El token se guarda automáticamente."
+					}
+				},
+				{
+					"name": "Verificar Token",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/auth/me",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"auth",
+								"me"
+							]
+						},
+						"description": "Verifica que el token sea válido y muestra información del usuario"
+					}
+				}
+			],
+			"description": "Endpoints de autenticación"
+		},
+		{
+			"name": "📋 Orders Management",
+			"item": [
+				{
+					"name": "Ver Todas las Órdenes",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/tenant-orders/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tenant-orders",
+								""
+							]
+						},
+						"description": "Lista todas las órdenes del cliente autenticado"
+					}
+				},
+				{
+					"name": "Crear Orden (Simular Bot)",
+					"event": [
+						{
+							"listen": "prerequest",
+							"script": {
+								"exec": [
+									"// Genera código único para la orden",
+									"const timestamp = Date.now();",
+									"const orderCode = `BOT-POSTMAN-${timestamp}`;",
+									"pm.environment.set('orderCode', orderCode);"
+								],
+								"type": "text/javascript"
+							}
+						}
+					],
+					"request": {
+						"method": "POST",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							},
+							{
+								"key": "Content-Type",
+								"value": "application/json"
+							}
+						],
+						"body": {
+							"mode": "raw",
+							"raw": "{\n    \"code\": \"{{orderCode}}\",\n    \"customer_name\": \"Cliente Postman (+1234567890)\",\n    \"total\": \"1199.99\",\n    \"status\": \"pending\"\n}"
+						},
+						"url": {
+							"raw": "{{baseUrl}}/api/tenant-orders/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tenant-orders",
+								""
+							]
+						},
+						"description": "Crea una nueva orden simulando el comportamiento del bot"
+					}
+				},
+				{
+					"name": "Buscar Orden por Código",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/tenant-orders/by-code/{{orderCode}}",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"tenant-orders",
+								"by-code",
+								"{{orderCode}}"
+							]
+						},
+						"description": "Busca una orden específica por su código"
+					}
+				}
+			],
+			"description": "Gestión de órdenes"
+		},
+		{
+			"name": "📱 Products",
+			"item": [
+				{
+					"name": "Ver Productos",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/products",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"products"
+							]
+						},
+						"description": "Lista todos los productos disponibles"
+					}
+				},
+				{
+					"name": "Catálogo del Bot",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/bot/products/catalog",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"bot",
+								"products",
+								"catalog"
+							]
+						},
+						"description": "Catálogo de productos específico del bot"
+					}
+				},
+				{
+					"name": "Buscar Productos",
+					"request": {
+						"method": "GET",
+						"header": [
+							{
+								"key": "Authorization",
+								"value": "Bearer {{token}}"
+							}
+						],
+						"url": {
+							"raw": "{{baseUrl}}/api/bot/products/search?q=iPhone",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"api",
+								"bot",
+								"products",
+								"search"
+							],
+							"query": [
+								{
+									"key": "q",
+									"value": "iPhone"
+								}
+							]
+						},
+						"description": "Busca productos usando el endpoint del bot"
+					}
+				}
+			],
+			"description": "Gestión de productos"
+		},
+		{
+			"name": "📊 Dashboard",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/health",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								"health"
+							]
+						},
+						"description": "Verifica que la API esté funcionando"
+					}
+				},
+				{
+					"name": "API Info",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{baseUrl}}/",
+							"host": [
+								"{{baseUrl}}"
+							],
+							"path": [
+								""
+							]
+						},
+						"description": "Información básica de la API"
+					}
+				}
+			],
+			"description": "Endpoints de estado y información"
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "baseUrl",
+			"value": "https://webhook.sintestesia.cl",
+			"type": "string"
+		},
+		{
+			"key": "token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "refresh_token",
+			"value": "",
+			"type": "string"
+		},
+		{
+			"key": "orderCode",
+			"value": "",
+			"type": "string"
+		}
+	]
+}

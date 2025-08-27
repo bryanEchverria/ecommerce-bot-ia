@@ -1,0 +1,472 @@
+{
+  "info": {
+    "name": "WhatsApp E-commerce Bot API",
+    "description": "Colección para probar el bot de WhatsApp para e-commerce con IA",
+    "version": "1.0.0",
+    "schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+  },
+  "item": [
+    {
+      "name": "Bot Status",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8003/",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8003",
+          "path": [
+            ""
+          ]
+        },
+        "description": "Verificar que el bot esté funcionando"
+      },
+      "response": []
+    },
+    {
+      "name": "Debug - Ver Memoria Conversaciones",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8003/debug/conversaciones",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8003",
+          "path": [
+            "debug",
+            "conversaciones"
+          ]
+        },
+        "description": "Ver estado actual de la memoria de conversaciones"
+      },
+      "response": []
+    },
+    {
+      "name": "Webhook - Saludo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"telefono\": \"+1234567890\",\n  \"mensaje\": \"hola\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8003/webhook",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8003",
+          "path": [
+            "webhook"
+          ]
+        },
+        "description": "Probar saludo básico del bot"
+      },
+      "response": []
+    },
+    {
+      "name": "Webhook - Búsqueda de Celular",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"telefono\": \"+1234567890\",\n  \"mensaje\": \"busco un celular\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8003/webhook",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8003",
+          "path": [
+            "webhook"
+          ]
+        },
+        "description": "Probar búsqueda de productos - celular"
+      },
+      "response": []
+    },
+    {
+      "name": "Webhook - Búsqueda iPhone",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"telefono\": \"+1234567890\",\n  \"mensaje\": \"me interesa un iPhone\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8003/webhook",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8003",
+          "path": [
+            "webhook"
+          ]
+        },
+        "description": "Probar búsqueda específica de iPhone"
+      },
+      "response": []
+    },
+    {
+      "name": "Webhook - Consulta de Precio",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"telefono\": \"+1234567890\",\n  \"mensaje\": \"¿cuánto cuesta el iPhone?\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8003/webhook",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8003",
+          "path": [
+            "webhook"
+          ]
+        },
+        "description": "Probar consulta de precios"
+      },
+      "response": []
+    },
+    {
+      "name": "Webhook - Solicitud de Compra",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"telefono\": \"+1234567890\",\n  \"mensaje\": \"quiero comprar el iPhone 15 Pro\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8003/webhook",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8003",
+          "path": [
+            "webhook"
+          ]
+        },
+        "description": "Probar proceso de compra"
+      },
+      "response": []
+    },
+    {
+      "name": "Webhook - Confirmación Cantidad",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"telefono\": \"+1234567890\",\n  \"mensaje\": \"quiero 2 unidades\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8003/webhook",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8003",
+          "path": [
+            "webhook"
+          ]
+        },
+        "description": "Probar confirmación de cantidad en compra"
+      },
+      "response": []
+    },
+    {
+      "name": "Webhook - Ver Catálogo",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"telefono\": \"+1234567890\",\n  \"mensaje\": \"quiero ver el catálogo\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8003/webhook",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8003",
+          "path": [
+            "webhook"
+          ]
+        },
+        "description": "Probar visualización del catálogo completo"
+      },
+      "response": []
+    },
+    {
+      "name": "Webhook - Consulta PlayStation",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"telefono\": \"+1234567890\",\n  \"mensaje\": \"¿tienes PlayStation?\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8003/webhook",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8003",
+          "path": [
+            "webhook"
+          ]
+        },
+        "description": "Probar búsqueda de PlayStation"
+      },
+      "response": []
+    },
+    {
+      "name": "Webhook - Consulta MacBook",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"telefono\": \"+1234567890\",\n  \"mensaje\": \"necesito una laptop, ¿tienes MacBook?\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8003/webhook",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8003",
+          "path": [
+            "webhook"
+          ]
+        },
+        "description": "Probar búsqueda de MacBook"
+      },
+      "response": []
+    },
+    {
+      "name": "Webhook - Flujo Completo Pago",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"telefono\": \"+5556667777\",\n  \"mensaje\": \"quiero comprar un telefono\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8003/webhook",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8003",
+          "path": [
+            "webhook"
+          ]
+        },
+        "description": "Paso 1: Iniciar compra de teléfono"
+      },
+      "response": []
+    },
+    {
+      "name": "Webhook - Confirmar Producto",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"telefono\": \"+5556667777\",\n  \"mensaje\": \"si\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8003/webhook",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8003",
+          "path": [
+            "webhook"
+          ]
+        },
+        "description": "Paso 2: Confirmar producto iPhone"
+      },
+      "response": []
+    },
+    {
+      "name": "Webhook - Especificar Cantidad",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"telefono\": \"+5556667777\",\n  \"mensaje\": \"quiero 2\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8003/webhook",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8003",
+          "path": [
+            "webhook"
+          ]
+        },
+        "description": "Paso 3: Especificar cantidad (2 unidades)"
+      },
+      "response": []
+    },
+    {
+      "name": "Webhook - Confirmar Compra y Pago",
+      "request": {
+        "method": "POST",
+        "header": [
+          {
+            "key": "Content-Type",
+            "value": "application/json"
+          }
+        ],
+        "body": {
+          "mode": "raw",
+          "raw": "{\n  \"telefono\": \"+5556667777\",\n  \"mensaje\": \"sí, confirmo\"\n}"
+        },
+        "url": {
+          "raw": "http://localhost:8003/webhook",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8003",
+          "path": [
+            "webhook"
+          ]
+        },
+        "description": "Paso 4: Confirmar compra y generar enlace de pago Flow"
+      },
+      "response": []
+    },
+    {
+      "name": "Facebook Webhook Verification",
+      "request": {
+        "method": "GET",
+        "header": [],
+        "url": {
+          "raw": "http://localhost:8003/facebook-webhook?hub.mode=subscribe&hub.challenge=test_challenge&hub.verify_token=mi_token_seguro",
+          "protocol": "http",
+          "host": [
+            "localhost"
+          ],
+          "port": "8003",
+          "path": [
+            "facebook-webhook"
+          ],
+          "query": [
+            {
+              "key": "hub.mode",
+              "value": "subscribe"
+            },
+            {
+              "key": "hub.challenge",
+              "value": "test_challenge"
+            },
+            {
+              "key": "hub.verify_token",
+              "value": "mi_token_seguro"
+            }
+          ]
+        },
+        "description": "Verificar webhook de Facebook Messenger"
+      },
+      "response": []
+    }
+  ],
+  "variable": [
+    {
+      "key": "base_url",
+      "value": "http://localhost:8003"
+    },
+    {
+      "key": "phone_number",
+      "value": "+1234567890"
+    }
+  ]
+}

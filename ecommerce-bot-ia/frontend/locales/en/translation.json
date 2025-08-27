@@ -1,0 +1,301 @@
+{
+  "common": {
+    "edit": "Edit",
+    "delete": "Delete",
+    "cancel": "Cancel",
+    "save": "Save",
+    "saveProduct": "Save Product",
+    "saveCampaign": "Save Campaign",
+    "saveDiscount": "Save Discount",
+    "saveClient": "Save Client",
+    "status": "Status",
+    "actions": "Actions",
+    "all": "All",
+    "name": "Name",
+    "category": "Category",
+    "price": "Price",
+    "stock": "Stock",
+    "units": "{{count}} units",
+    "clicks": "Clicks",
+    "conversions": "Conversions",
+    "type": "Type",
+    "value": "Value",
+    "target": "Target",
+    "search": "Search..."
+  },
+  "sidebar": {
+    "title": "E-commerce",
+    "dashboard": "Dashboard",
+    "products": "Products",
+    "orders": "Orders",
+    "clients": "Clients",
+    "campaigns": "Campaigns",
+    "discounts": "Discounts",
+    "whatsappSettings": "WhatsApp",
+    "copyright": "© 2024 E-commerce Inc.",
+    "rightsReserved": "All rights reserved."
+  },
+  "header": {
+    "titles": {
+      "dashboard": "Dashboard Overview",
+      "products": "Product Management",
+      "orders": "Order Tracking",
+      "clients": "Client Management",
+      "campaigns": "Campaign Management",
+      "discounts": "Discount Management",
+      "whatsapp-settings": "WhatsApp Settings",
+      "default": "Dashboard"
+    }
+  },
+  "dashboard": {
+    "timeFilters": {
+      "today": "Today",
+      "7d": "Last 7 Days",
+      "30d": "Last 30 Days",
+      "1y": "Last Year"
+    },
+    "cards": {
+      "totalRevenue": "Total Revenue",
+      "sales": "Sales",
+      "newOrders": "New Orders",
+      "newCustomers": "New Customers"
+    },
+    "changeLabels": {
+      "today": "from yesterday",
+      "7d": "from prev. 7 days",
+      "30d": "from prev. 30 days",
+      "1y": "from last year"
+    },
+    "salesTrend": {
+      "title": "Sales Trend"
+    },
+    "recentOrders": {
+      "title": "Recent Orders",
+      "headers": {
+        "orderId": "Order ID",
+        "orderNumber": "Order Number",
+        "customer": "Customer",
+        "date": "Date",
+        "status": "Status",
+        "total": "Total"
+      },
+      "noOrders": "No orders found for this period."
+    }
+  },
+  "products": {
+    "title": "All Products",
+    "description": "Manage your product inventory and details.",
+    "addProduct": "Add Product",
+    "searchPlaceholder": "Search by product name...",
+    "table": {
+      "productName": "Product Name"
+    },
+    "noProducts": "No products found. Try adjusting your filters.",
+    "showingCount": "Showing {{count}} of {{total}} products",
+    "messages": {
+      "created": "Product '{{name}}' created successfully",
+      "updated": "Product '{{name}}' updated successfully",
+      "deleted": "Product '{{name}}' deleted successfully",
+      "error": "Error saving product. Please try again.",
+      "deleteError": "Error deleting product. Please try again."
+    }
+  },
+  "productModal": {
+    "addTitle": "Add New Product",
+    "editTitle": "Edit Product",
+    "labels": {
+      "productName": "Product Name",
+      "category": "Category",
+      "status": "Status",
+      "price": "Price",
+      "salePrice": "Sale Price (Optional)",
+      "stock": "Stock"
+    }
+  },
+  "orders": {
+    "title": "All Orders",
+    "description": "Track and manage customer orders.",
+    "export": "Export CSV",
+    "headers": {
+      "orderId": "Order ID",
+      "orderNumber": "Order Number",
+      "customerName": "Customer Name",
+      "date": "Date",
+      "items": "Items",
+      "total": "Total"
+    },
+    "showingCount": "Showing {{count}} of {{total}} orders",
+    "searchPlaceholder": "Search by Order Number or Customer...",
+    "filterByStatus": "Filter by status",
+    "allStatuses": "All Statuses",
+    "noOrders": "No orders found. Try adjusting your filters.",
+    "timeFilters": {
+      "today": "Today",
+      "7d": "Last 7 Days",
+      "30d": "Last 30 Days",
+      "allTime": "All Time"
+    },
+    "messages": {
+      "updated": "Order {{id}} updated successfully",
+      "updateError": "Error updating order",
+      "loadError": "Error loading orders"
+    }
+  },
+  "clients": {
+    "title": "All Clients",
+    "description": "Manage your client information.",
+    "addClient": "Add Client",
+    "searchPlaceholder": "Search by name or email...",
+    "headers": {
+      "client": "Client",
+      "phone": "Phone",
+      "joinDate": "Join Date",
+      "totalSpent": "Total Spent"
+    },
+    "noClients": "No clients found. Try adjusting your search.",
+    "showingCount": "Showing {{count}} of {{total}} clients",
+    "back": "Back to All Clients",
+    "totalSpentLabel": "Total Spent",
+    "orderHistory": "Order History",
+    "orderHistoryDesc": "A list of all purchases made by {{name}}.",
+    "noOrders": "This client has not made any purchases yet.",
+    "foundOrders": "Found {{count}} order(s) for this client.",
+    "joinedOn": "Joined on {{date}}"
+  },
+  "clientModal": {
+    "addTitle": "Add New Client",
+    "editTitle": "Edit Client",
+    "labels": {
+      "fullName": "Full Name",
+      "email": "Email Address",
+      "phone": "Phone Number"
+    }
+  },
+  "campaigns": {
+    "title": "All Campaigns",
+    "description": "Manage your marketing campaigns.",
+    "addCampaign": "Add Campaign",
+    "headers": {
+      "campaign": "Campaign",
+      "period": "Period",
+      "products": "Products",
+      "budget": "Budget"
+    },
+    "showingCount": "Showing {{count}} of {{total}} campaigns",
+    "messages": {
+      "created": "Campaign '{{name}}' created successfully",
+      "updated": "Campaign '{{name}}' updated successfully",
+      "deleted": "Campaign '{{name}}' deleted successfully",
+      "error": "Error saving campaign. Please try again.",
+      "deleteError": "Error deleting campaign. Please try again."
+    }
+  },
+  "campaignModal": {
+    "addTitle": "Add New Campaign",
+    "editTitle": "Edit Campaign",
+    "labels": {
+      "name": "Campaign Name",
+      "startDate": "Start Date",
+      "endDate": "End Date",
+      "budget": "Budget",
+      "productsOnSale": "Products on Sale"
+    }
+  },
+  "discounts": {
+    "title": "All Discounts",
+    "description": "Create and manage discount rules for your store.",
+    "addDiscount": "Add Discount",
+    "showingCount": "Showing {{count}} of {{total}} discounts",
+    "targets": {
+      "all": "All Products",
+      "category": "Category: {{name}}",
+      "product": "Product: {{name}}"
+    },
+    "messages": {
+      "created": "Discount '{{name}}' created successfully",
+      "updated": "Discount '{{name}}' updated successfully",
+      "deleted": "Discount '{{name}}' deleted successfully",
+      "error": "Error saving discount. Please try again.",
+      "deleteError": "Error deleting discount. Please try again."
+    }
+  },
+  "discountModal": {
+    "addTitle": "Add New Discount",
+    "editTitle": "Edit Discount",
+    "labels": {
+      "name": "Discount Name",
+      "type": "Type",
+      "value": "Value",
+      "target": "Target",
+      "category": "Category",
+      "product": "Product",
+      "status": "Status"
+    },
+    "targets": {
+      "all": "All Products",
+      "category": "Specific Category",
+      "product": "Specific Product"
+    }
+  },
+  "confirmationModal": {
+    "delete": "Delete",
+    "titles": {
+      "product": "Delete Product",
+      "campaign": "Delete Campaign",
+      "discount": "Delete Discount",
+      "client": "Delete Client"
+    },
+    "messages": {
+      "product": "Are you sure you want to delete this product? This action cannot be undone.",
+      "campaign": "Are you sure you want to delete this campaign? This action cannot be undone.",
+      "discount": "Are you sure you want to delete this discount rule? This action cannot be undone.",
+      "client": "Are you sure you want to delete this client? This action cannot be undone."
+    }
+  },
+  "productStatus": {
+    "Active": "Active",
+    "Archived": "Archived",
+    "Out of Stock": "Out of Stock"
+  },
+  "orderStatus": {
+    "Pending": "Pending",
+    "Received": "Received",
+    "Shipping": "Shipping",
+    "Delivered": "Delivered",
+    "Cancelled": "Cancelled"
+  },
+  "campaignStatus": {
+    "Active": "Active",
+    "Paused": "Paused",
+    "Completed": "Completed"
+  },
+  "discountStatus": {
+    "active": "Active",
+    "inactive": "Inactive"
+  },
+  "discountType": {
+    "Percentage": "Percentage",
+    "Fixed Amount": "Fixed Amount"
+  },
+  "whatsapp": {
+    "title": "WhatsApp Settings",
+    "description": "Configure your WhatsApp channel for automatic message sending",
+    "currentStatus": "Current Status",
+    "provider": "Provider",
+    "status": "Status",
+    "active": "Active",
+    "inactive": "Inactive",
+    "configuration": "Configuration",
+    "selectProvider": "Select Provider",
+    "activateChannel": "Activate WhatsApp channel",
+    "twilioConfig": "Twilio Configuration",
+    "metaConfig": "Meta WhatsApp Cloud API Configuration",
+    "save": "Save Configuration",
+    "saving": "Saving...",
+    "testConnection": "Test Connection",
+    "testPhoneNumber": "Test Phone Number",
+    "testMessage": "Test Message",
+    "testSend": "Send Test",
+    "testing": "Sending..."
+  }
+}

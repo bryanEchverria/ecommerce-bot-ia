@@ -1,0 +1,15 @@
+fastapi
+uvicorn[standard]
+sqlalchemy
+asyncpg
+aiosqlite
+psycopg2-binary
+pydantic[email]
+python-dotenv
+google-generativeai
+python-multipart
+python-jose[cryptography]
+passlib[bcrypt]
+openai
+httpx
+cryptography

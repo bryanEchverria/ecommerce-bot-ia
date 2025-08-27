@@ -1,0 +1,148 @@
+version: '3.8'
+
+services:
+  # Database Service
+  postgres:
+    image: postgres:15-alpine
+    container_name: ecommerce-postgres
+    restart: unless-stopped
+    environment:
+      POSTGRES_DB: ${POSTGRES_DB:-ecommerce}
+      POSTGRES_USER: ${POSTGRES_USER:-postgres}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+    volumes:
+      - postgres_data:/var/lib/postgresql/data
+      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+    ports:
+      - "5433:5432"
+    healthcheck:
+      test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ecommerce-network
+
+  # Backend API Service
+  backend:
+    build:
+      context: ./backend
+      dockerfile: Dockerfile
+    container_name: ecommerce-backend
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-ecommerce}
+      SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      GEMINI_API_KEY: ${GEMINI_API_KEY}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+      FRONTEND_URL: ${FRONTEND_URL:-https://app.sintestesia.cl}
+      FLOW_API_KEY: ${FLOW_API_KEY}
+      FLOW_SECRET_KEY: ${FLOW_SECRET_KEY}
+      FLOW_BASE_URL: ${FLOW_BASE_URL:-https://sandbox.flow.cl/api}
+      BASE_URL: ${BASE_URL:-https://webhook.sintestesia.cl}
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      TWILIO_WHATSAPP_NUMBER: ${TWILIO_WHATSAPP_NUMBER}
+    volumes:
+      - backend_data:/app/data
+      - ./backend/alembic:/app/alembic
+    ports:
+      - "8002:8002"
+    depends_on:
+      postgres:
+        condition: service_healthy
+    # healthcheck:
+      # test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
+      # interval: 30s
+      # timeout: 10s
+      # retries: 3
+    networks:
+      - ecommerce-network
+
+  # WhatsApp Bot Service
+  whatsapp-bot:
+    build:
+      context: ./whatsapp-bot-fastapi
+      dockerfile: Dockerfile
+    container_name: ecommerce-whatsapp-bot
+    restart: unless-stopped
+    environment:
+      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-ecommerce}
+      OPENAI_API_KEY: ${OPENAI_API_KEY}
+      BACKEND_URL: http://backend:8002
+      FLOW_API_KEY: ${FLOW_API_KEY}
+      FLOW_SECRET_KEY: ${FLOW_SECRET_KEY}
+      FLOW_BASE_URL: ${FLOW_BASE_URL:-https://sandbox.flow.cl/api}
+      BASE_URL: ${BASE_URL:-https://webhook.sintestesia.cl}
+      ENVIRONMENT: ${ENVIRONMENT:-production}
+    volumes:
+      - bot_data:/app/data
+    ports:
+      - "9001:9001"
+    depends_on:
+      - backend
+    # healthcheck:
+      # test: ["CMD", "curl", "-f", "http://localhost:9001/health"]
+      # interval: 30s
+      # timeout: 10s
+      # retries: 3
+    networks:
+      - ecommerce-network
+
+  # Frontend Service
+  frontend:
+    build:
+      context: ./frontend
+      dockerfile: Dockerfile
+    container_name: ecommerce-frontend
+    restart: unless-stopped
+    environment:
+      VITE_API_URL: ${VITE_API_URL:-https://api.sintestesia.cl}
+      VITE_GEMINI_API_KEY: ${VITE_GEMINI_API_KEY}
+    ports:
+      - "8080:80"
+    depends_on:
+      - backend
+    healthcheck:
+      test: ["CMD", "wget", "--no-verbose", "--tries=1", "--spider", "http://localhost/"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+    networks:
+      - ecommerce-network
+
+  # Redis for caching and sessions (optional)
+  redis:
+    image: redis:7-alpine
+    container_name: ecommerce-redis
+    restart: unless-stopped
+    command: redis-server --appendonly yes
+    volumes:
+      - redis_data:/data
+    ports:
+      - "6379:6379"
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+    networks:
+      - ecommerce-network
+
+volumes:
+  postgres_data:
+    driver: local
+  backend_data:
+    driver: local
+  bot_data:
+    driver: local
+  redis_data:
+    driver: local
+
+networks:
+  ecommerce-network:
+    driver: bridge
+    ipam:
+      config:
+        - subnet: 172.20.0.0/16

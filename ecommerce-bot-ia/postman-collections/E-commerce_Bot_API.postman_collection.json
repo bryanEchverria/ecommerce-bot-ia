@@ -1,0 +1,622 @@
+{
+	"info": {
+		"_postman_id": "e-commerce-bot-api",
+		"name": "E-commerce Bot API",
+		"description": "Colección completa para probar la API del e-commerce y los endpoints del bot de WhatsApp",
+		"schema": "https://schema.getpostman.com/json/collection/v2.1.0/collection.json"
+	},
+	"item": [
+		{
+			"name": "🏠 API Principal",
+			"item": [
+				{
+					"name": "Health Check",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/",
+							"host": ["{{base_url}}"],
+							"path": [""]
+						}
+					}
+				},
+				{
+					"name": "Documentación API",
+					"request": {
+						"method": "GET",
+						"header": [],
+						"url": {
+							"raw": "{{base_url}}/docs",
+							"host": ["{{base_url}}"],
+							"path": ["docs"]
+						}
+					}
+				}
+			]
+		},
+		{
+			"name": "🤖 Bot Endpoints",
+			"item": [
+				{
+					"name": "💬 Chat Principal (IA - Cualquier mensaje)",
+					"item": [
+						{
+							"name": "Chat - Saludo",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"telefono\": \"56912345678\",\n  \"mensaje\": \"hola\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/bot/chat",
+									"host": ["{{base_url}}"],
+									"path": ["api", "bot", "chat"]
+								}
+							}
+						},
+						{
+							"name": "Chat - Buscar consolador",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"telefono\": \"56912345678\",\n  \"mensaje\": \"busco un consolador\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/bot/chat",
+									"host": ["{{base_url}}"],
+									"path": ["api", "bot", "chat"]
+								}
+							}
+						},
+						{
+							"name": "Chat - Precio iPhone",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"telefono\": \"56912345678\",\n  \"mensaje\": \"cuánto cuesta el iPhone?\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/bot/chat",
+									"host": ["{{base_url}}"],
+									"path": ["api", "bot", "chat"]
+								}
+							}
+						},
+						{
+							"name": "Chat - Consulta libre",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"telefono\": \"56912345678\",\n  \"mensaje\": \"me puedes recomendar algo para regalo?\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/bot/chat",
+									"host": ["{{base_url}}"],
+									"path": ["api", "bot", "chat"]
+								}
+							}
+						},
+						{
+							"name": "Chat - Buscar producto",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"telefono\": \"56912345678\",\n  \"mensaje\": \"busco un iPhone\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/bot/chat",
+									"host": ["{{base_url}}"],
+									"path": ["api", "bot", "chat"]
+								}
+							}
+						},
+						{
+							"name": "Chat - Ver catálogo",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"telefono\": \"56912345678\",\n  \"mensaje\": \"ver catálogo\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/bot/chat",
+									"host": ["{{base_url}}"],
+									"path": ["api", "bot", "chat"]
+								}
+							}
+						},
+						{
+							"name": "Chat - Promociones",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"telefono\": \"56912345678\",\n  \"mensaje\": \"qué promociones hay\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/bot/chat",
+									"host": ["{{base_url}}"],
+									"path": ["api", "bot", "chat"]
+								}
+							}
+						},
+						{
+							"name": "Chat - Descuentos",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"telefono\": \"56912345678\",\n  \"mensaje\": \"qué descuentos tienen\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/bot/chat",
+									"host": ["{{base_url}}"],
+									"path": ["api", "bot", "chat"]
+								}
+							}
+						},
+						{
+							"name": "Chat - Consulta con IA",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"telefono\": \"56912345678\",\n  \"mensaje\": \"recomiéndame algo para regalar\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/bot/chat",
+									"host": ["{{base_url}}"],
+									"path": ["api", "bot", "chat"]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "🔍 Búsqueda de Productos",
+					"item": [
+						{
+							"name": "Buscar por nombre - iPhone",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/bot/products/search?query=iPhone&limit=5",
+									"host": ["{{base_url}}"],
+									"path": ["api", "bot", "products", "search"],
+									"query": [
+										{
+											"key": "query",
+											"value": "iPhone"
+										},
+										{
+											"key": "limit",
+											"value": "5"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Buscar por nombre - consolador",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/bot/products/search?query=consolador&limit=5",
+									"host": ["{{base_url}}"],
+									"path": ["api", "bot", "products", "search"],
+									"query": [
+										{
+											"key": "query",
+											"value": "consolador"
+										},
+										{
+											"key": "limit",
+											"value": "5"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Buscar por categoría - Electronics",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/bot/products/search?query=Electronics&limit=10",
+									"host": ["{{base_url}}"],
+									"path": ["api", "bot", "products", "search"],
+									"query": [
+										{
+											"key": "query",
+											"value": "Electronics"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Buscar chocolate",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/bot/products/search?query=chocolate&limit=3",
+									"host": ["{{base_url}}"],
+									"path": ["api", "bot", "products", "search"],
+									"query": [
+										{
+											"key": "query",
+											"value": "chocolate"
+										},
+										{
+											"key": "limit",
+											"value": "3"
+										}
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "📋 Catálogo de Productos",
+					"item": [
+						{
+							"name": "Obtener catálogo completo",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/bot/products/catalog",
+									"host": ["{{base_url}}"],
+									"path": ["api", "bot", "products", "catalog"]
+								}
+							}
+						},
+						{
+							"name": "Productos por categoría - Electronics",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/bot/products/by-category?category=Electronics&limit=10",
+									"host": ["{{base_url}}"],
+									"path": ["api", "bot", "products", "by-category"],
+									"query": [
+										{
+											"key": "category",
+											"value": "Electronics"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								}
+							}
+						},
+						{
+							"name": "Productos por categoría - consoladores",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/bot/products/by-category?category=consoladores&limit=10",
+									"host": ["{{base_url}}"],
+									"path": ["api", "bot", "products", "by-category"],
+									"query": [
+										{
+											"key": "category",
+											"value": "consoladores"
+										},
+										{
+											"key": "limit",
+											"value": "10"
+										}
+									]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "🎯 Campañas y Promociones",
+					"item": [
+						{
+							"name": "Obtener campañas activas",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/bot/campaigns/active",
+									"host": ["{{base_url}}"],
+									"path": ["api", "bot", "campaigns", "active"]
+								}
+							}
+						},
+						{
+							"name": "Obtener descuentos activos",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/bot/discounts/active",
+									"host": ["{{base_url}}"],
+									"path": ["api", "bot", "discounts", "active"]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "🔍 Detalle de Producto",
+					"item": [
+						{
+							"name": "Detalle producto por ID - iPhone",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/bot/product/7dee9485-3ad0-485d-bd41-36c65a0365b0",
+									"host": ["{{base_url}}"],
+									"path": ["api", "bot", "product", "7dee9485-3ad0-485d-bd41-36c65a0365b0"]
+								}
+							}
+						},
+						{
+							"name": "Detalle producto por ID - Ejemplo",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/bot/product/{{product_id}}",
+									"host": ["{{base_url}}"],
+									"path": ["api", "bot", "product", "{{product_id}}"]
+								}
+							}
+						}
+					]
+				}
+			]
+		},
+		{
+			"name": "🛍️ API Principal E-commerce",
+			"item": [
+				{
+					"name": "📦 Productos",
+					"item": [
+						{
+							"name": "Obtener todos los productos",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/products",
+									"host": ["{{base_url}}"],
+									"path": ["api", "products"]
+								}
+							}
+						},
+						{
+							"name": "Obtener producto por ID",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/products/{{product_id}}",
+									"host": ["{{base_url}}"],
+									"path": ["api", "products", "{{product_id}}"]
+								}
+							}
+						},
+						{
+							"name": "Crear nuevo producto",
+							"request": {
+								"method": "POST",
+								"header": [
+									{
+										"key": "Content-Type",
+										"value": "application/json"
+									}
+								],
+								"body": {
+									"mode": "raw",
+									"raw": "{\n  \"name\": \"Producto de Prueba\",\n  \"category\": \"Test\",\n  \"price\": 99.99,\n  \"sale_price\": 79.99,\n  \"stock\": 100,\n  \"image_url\": \"https://example.com/product.jpg\",\n  \"status\": \"Active\"\n}"
+								},
+								"url": {
+									"raw": "{{base_url}}/api/products",
+									"host": ["{{base_url}}"],
+									"path": ["api", "products"]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "📋 Pedidos",
+					"item": [
+						{
+							"name": "Obtener todos los pedidos",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/orders",
+									"host": ["{{base_url}}"],
+									"path": ["api", "orders"]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "👥 Clientes",
+					"item": [
+						{
+							"name": "Obtener todos los clientes",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/clients",
+									"host": ["{{base_url}}"],
+									"path": ["api", "clients"]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "🎯 Campañas",
+					"item": [
+						{
+							"name": "Obtener todas las campañas",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/campaigns",
+									"host": ["{{base_url}}"],
+									"path": ["api", "campaigns"]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "🏷️ Descuentos",
+					"item": [
+						{
+							"name": "Obtener todos los descuentos",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/discounts",
+									"host": ["{{base_url}}"],
+									"path": ["api", "discounts"]
+								}
+							}
+						}
+					]
+				},
+				{
+					"name": "📊 Dashboard",
+					"item": [
+						{
+							"name": "Obtener estadísticas del dashboard",
+							"request": {
+								"method": "GET",
+								"header": [],
+								"url": {
+									"raw": "{{base_url}}/api/dashboard/stats",
+									"host": ["{{base_url}}"],
+									"path": ["api", "dashboard", "stats"]
+								}
+							}
+						}
+					]
+				}
+			]
+		}
+	],
+	"event": [
+		{
+			"listen": "prerequest",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		},
+		{
+			"listen": "test",
+			"script": {
+				"type": "text/javascript",
+				"exec": [
+					""
+				]
+			}
+		}
+	],
+	"variable": [
+		{
+			"key": "base_url",
+			"value": "http://127.0.0.1:8000",
+			"type": "string"
+		},
+		{
+			"key": "product_id",
+			"value": "7dee9485-3ad0-485d-bd41-36c65a0365b0",
+			"type": "string"
+		}
+	]
+}
