@@ -1,9 +1,11 @@
-from fastapi import APIRouter, Request, HTTPException, Query
+from fastapi import APIRouter, Request, HTTPException, Query, Header
 from fastapi.responses import PlainTextResponse
 import os
 import logging
 import json
-from typing import Dict, Any
+import hashlib
+import hmac
+from typing import Dict, Any, Optional
 import sys
 from pathlib import Path
 
@@ -25,6 +27,7 @@ logger = logging.getLogger(__name__)
 
 # Meta WhatsApp webhook configuration
 WEBHOOK_VERIFY_TOKEN = os.getenv("WHATSAPP_VERIFY_TOKEN", "tu_token_de_verificacion_secreto")
+WEBHOOK_SECRET = os.getenv("WHATSAPP_WEBHOOK_SECRET", "")  # Para verificar firmas
 
 @router.get("/webhook/meta")
 async def verify_webhook(
@@ -51,8 +54,45 @@ async def verify_webhook(
         logger.error(f"Error in webhook verification: {str(e)}")
         raise HTTPException(status_code=500, detail="Internal server error")
 
+def verify_webhook_signature(payload: bytes, signature: str, secret: str) -> bool:
+    """
+    Verifica la firma del webhook de Meta WhatsApp
+    
+    Args:
+        payload: Cuerpo del request en bytes
+        signature: Firma enviada por Meta (X-Hub-Signature-256)
+        secret: Secret configurado en Meta
+        
+    Returns:
+        bool: True si la firma es válida
+    """
+    if not secret or not signature:
+        return False
+    
+    try:
+        # Meta envía la firma como "sha256=<hash>"
+        if signature.startswith('sha256='):
+            signature = signature[7:]
+        
+        # Calcular el hash esperado
+        expected_signature = hmac.new(
+            secret.encode('utf-8'),
+            payload,
+            hashlib.sha256
+        ).hexdigest()
+        
+        # Comparación segura
+        return hmac.compare_digest(signature, expected_signature)
+        
+    except Exception as e:
+        logger.error(f"Error verifying webhook signature: {str(e)}")
+        return False
+
 @router.post("/webhook/meta")
-async def webhook_meta(request: Request):
+async def webhook_meta(
+    request: Request,
+    x_hub_signature_256: Optional[str] = Header(None, alias="X-Hub-Signature-256")
+):
     """
     Webhook principal para recibir mensajes de Meta WhatsApp Cloud API
     Procesa eventos entrantes y responde con mensajes inteligentes
@@ -60,6 +100,16 @@ async def webhook_meta(request: Request):
     try:
         # Obtener el payload JSON
         body = await request.body()
+        
+        # Verificar firma del webhook si está configurado el secret
+        if WEBHOOK_SECRET and x_hub_signature_256:
+            if not verify_webhook_signature(body, x_hub_signature_256, WEBHOOK_SECRET):
+                logger.error("Webhook signature verification failed")
+                raise HTTPException(status_code=401, detail="Invalid signature")
+            logger.info("Webhook signature verified successfully")
+        elif WEBHOOK_SECRET:
+            logger.warning("Webhook secret configured but no signature received")
+        
         webhook_data = json.loads(body.decode('utf-8'))
         
         logger.info(f"Meta webhook received: {json.dumps(webhook_data, indent=2)}")
@@ -147,11 +197,54 @@ async def process_incoming_message(message: Dict[str, Any], value: Dict[str, Any
                 error_message = "Lo siento, ocurrió un error procesando tu mensaje. Por favor intenta de nuevo."
                 await send_text(phone_number, error_message)
         
-        elif message_type in ["image", "document", "audio", "video"]:
-            # Por ahora, responder que no soportamos estos tipos
+        elif message_type == "interactive":
+            # Manejar botones y menús interactivos
+            interactive_data = message.get("interactive", {})
+            interactive_type = interactive_data.get("type")
+            
             phone_number = format_phone_number(from_number)
-            unsupported_message = "Por ahora solo puedo procesar mensajes de texto. Por favor envía tu consulta como texto."
-            await send_text(phone_number, unsupported_message)
+            
+            if interactive_type == "button_reply":
+                button_reply = interactive_data.get("button_reply", {})
+                button_id = button_reply.get("id", "")
+                button_title = button_reply.get("title", "")
+                
+                logger.info(f"Button clicked: {button_id} - {button_title}")
+                
+                # Procesar como texto el botón seleccionado
+                response_text = await procesar_mensaje(phone_number, button_title)
+                await send_text(phone_number, response_text)
+                
+            elif interactive_type == "list_reply":
+                list_reply = interactive_data.get("list_reply", {})
+                list_id = list_reply.get("id", "")
+                list_title = list_reply.get("title", "")
+                
+                logger.info(f"List item selected: {list_id} - {list_title}")
+                
+                # Procesar como texto el elemento seleccionado
+                response_text = await procesar_mensaje(phone_number, list_title)
+                await send_text(phone_number, response_text)
+        
+        elif message_type in ["image", "document", "audio", "video"]:
+            # Manejar archivos multimedia
+            phone_number = format_phone_number(from_number)
+            
+            # Obtener información del archivo
+            media_data = message.get(message_type, {})
+            media_id = media_data.get("id")
+            caption = media_data.get("caption", "")
+            
+            logger.info(f"Received {message_type} with ID: {media_id}, caption: {caption}")
+            
+            # Si hay caption, procesarlo como texto
+            if caption.strip():
+                response_text = await procesar_mensaje(phone_number, caption)
+                await send_text(phone_number, response_text)
+            else:
+                # Mensaje genérico para archivos sin caption
+                unsupported_message = f"He recibido tu {message_type}. Por ahora solo puedo procesar mensajes de texto. ¿Podrías describir tu consulta en un mensaje de texto?"
+                await send_text(phone_number, unsupported_message)
         
         else:
             logger.info(f"Unsupported message type: {message_type}")

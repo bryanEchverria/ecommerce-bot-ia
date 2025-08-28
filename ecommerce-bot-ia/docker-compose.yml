@@ -76,6 +76,18 @@ services:
       FLOW_BASE_URL: ${FLOW_BASE_URL:-https://sandbox.flow.cl/api}
       BASE_URL: ${BASE_URL:-https://webhook.sintestesia.cl}
       ENVIRONMENT: ${ENVIRONMENT:-production}
+      # WhatsApp Provider Selection
+      WA_PROVIDER: ${WA_PROVIDER:-twilio}
+      # Meta WhatsApp Configuration
+      WHATSAPP_TOKEN: ${WHATSAPP_TOKEN}
+      WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID}
+      GRAPH_API_VERSION: ${GRAPH_API_VERSION:-v21.0}
+      WHATSAPP_VERIFY_TOKEN: ${WHATSAPP_VERIFY_TOKEN}
+      WHATSAPP_WEBHOOK_SECRET: ${WHATSAPP_WEBHOOK_SECRET}
+      # Twilio Configuration (mantener para compatibilidad)
+      TWILIO_ACCOUNT_SID: ${TWILIO_ACCOUNT_SID}
+      TWILIO_AUTH_TOKEN: ${TWILIO_AUTH_TOKEN}
+      TWILIO_WHATSAPP_NUMBER: ${TWILIO_WHATSAPP_NUMBER}
     volumes:
       - bot_data:/app/data
     ports:

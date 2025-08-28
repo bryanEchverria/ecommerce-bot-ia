@@ -150,5 +150,93 @@ class MetaAdapter(WhatsAppAdapter):
             logger.error(f"Meta error sending template: {str(e)}")
             return False
     
+    async def send_interactive_buttons(
+        self,
+        to: str,
+        body_text: str,
+        buttons: list,
+        header_text: Optional[str] = None,
+        footer_text: Optional[str] = None
+    ) -> bool:
+        """
+        Envía un mensaje con botones interactivos
+        
+        Args:
+            to: Número de teléfono destino
+            body_text: Texto principal del mensaje
+            buttons: Lista de botones [{"id": "btn1", "title": "Botón 1"}, ...]
+            header_text: Texto del encabezado (opcional)
+            footer_text: Texto del pie (opcional)
+            
+        Returns:
+            bool: True si el envío fue exitoso
+        """
+        try:
+            # Normalizar número de teléfono
+            if to.startswith('whatsapp:'):
+                to = to.replace('whatsapp:', '')
+            if not to.startswith('+'):
+                to = '+' + to
+            
+            async with httpx.AsyncClient() as client:
+                headers = {
+                    "Authorization": f"Bearer {self.token}",
+                    "Content-Type": "application/json"
+                }
+                
+                # Construir estructura del mensaje interactivo
+                interactive = {
+                    "type": "button",
+                    "body": {"text": body_text}
+                }
+                
+                # Agregar header si existe
+                if header_text:
+                    interactive["header"] = {
+                        "type": "text",
+                        "text": header_text
+                    }
+                
+                # Agregar footer si existe
+                if footer_text:
+                    interactive["footer"] = {"text": footer_text}
+                
+                # Construir botones (máximo 3 para Meta)
+                interactive_buttons = []
+                for i, button in enumerate(buttons[:3]):  # Meta permite máx 3 botones
+                    interactive_buttons.append({
+                        "type": "reply",
+                        "reply": {
+                            "id": button.get("id", f"btn_{i}"),
+                            "title": button.get("title", f"Opción {i+1}")
+                        }
+                    })
+                
+                interactive["action"] = {"buttons": interactive_buttons}
+                
+                payload = {
+                    "messaging_product": "whatsapp",
+                    "to": to,
+                    "type": "interactive",
+                    "interactive": interactive
+                }
+                
+                response = await client.post(
+                    self.base_url,
+                    headers=headers,
+                    json=payload
+                )
+                
+                if response.status_code == 200:
+                    logger.info(f"Meta interactive buttons sent successfully to {to}")
+                    return True
+                else:
+                    logger.error(f"Meta failed to send interactive buttons: {response.status_code} - {response.text}")
+                    return False
+                    
+        except Exception as e:
+            logger.error(f"Meta error sending interactive buttons: {str(e)}")
+            return False
+    
     def get_provider_name(self) -> str:
         return "meta"
