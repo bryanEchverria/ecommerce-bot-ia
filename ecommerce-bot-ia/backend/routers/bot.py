@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, HTTPException, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.orm import Session
-from typing import List, Optional
+from typing import List, Optional, Dict, Any
 from pydantic import BaseModel
 from database import get_async_db, get_db
 from models import Product, Campaign, Discount, FlowPedido
@@ -9,6 +9,13 @@ from auth import get_current_client, TenantClient
 import crud_async
 import sys
 import os
+
+# Import tenant middleware functions for debugging
+try:
+    from tenant_middleware import get_tenant_id, get_cache_stats
+except ImportError:
+    get_tenant_id = None
+    get_cache_stats = None
 
 # Import Flow chat service with proper order processing
 try:
@@ -283,3 +290,54 @@ async def get_flow_stats_for_backoffice(db: Session = Depends(get_db)):
         }
     except Exception as e:
         raise HTTPException(status_code=500, detail=f"Error getting Flow stats: {str(e)}")
+
+
+# TEMPORARY DEBUG ENDPOINTS - REMOVE IN PRODUCTION
+@router.get("/bot/debug/tenant")
+async def debug_tenant_info() -> Dict[str, Any]:
+    """
+    TEMPORARY: Debug endpoint to test tenant resolution.
+    Remove this endpoint in production.
+    """
+    try:
+        if get_tenant_id is None:
+            return {
+                "error": "Tenant middleware not available",
+                "tenant_id": None,
+                "resolved": False
+            }
+        
+        tenant_id = get_tenant_id()
+        return {
+            "tenant_id": tenant_id,
+            "resolved": True,
+            "message": "Tenant successfully resolved",
+            "endpoint": "TEMPORARY DEBUG - REMOVE IN PRODUCTION"
+        }
+    except HTTPException as e:
+        raise e
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting tenant: {str(e)}")
+
+
+@router.get("/bot/debug/cache")
+async def debug_cache_stats() -> Dict[str, Any]:
+    """
+    TEMPORARY: Debug endpoint to view cache statistics.
+    Remove this endpoint in production.
+    """
+    try:
+        if get_cache_stats is None:
+            return {
+                "error": "Cache stats not available",
+                "cache_stats": {}
+            }
+        
+        stats = get_cache_stats()
+        return {
+            "cache_stats": stats,
+            "message": "Cache statistics retrieved",
+            "endpoint": "TEMPORARY DEBUG - REMOVE IN PRODUCTION"
+        }
+    except Exception as e:
+        raise HTTPException(status_code=500, detail=f"Error getting cache stats: {str(e)}")

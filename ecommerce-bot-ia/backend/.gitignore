@@ -1,0 +1,4 @@
+
+# Ignore sensitive files and build artifacts
+.gemini/
+.docker/

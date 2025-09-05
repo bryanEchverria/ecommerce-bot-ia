@@ -12,12 +12,17 @@ from routers.twilio_webhook import router as twilio_router
 from routers.flow_router import router as flow_router
 from routers.flow_orders import router as flow_orders_router
 from routers.whatsapp_settings import router as whatsapp_settings_router
+from routers.debug import router as debug_router
+from tenant_middleware import TenantMiddleware
 
 app = FastAPI(
     title="E-commerce Backoffice API",
     description="API for e-commerce backoffice management with multi-tenant authentication",
     version="2.0.0"
 )
+
+# Register tenant middleware FIRST (before any other middleware)
+app.add_middleware(TenantMiddleware)
 
 # Startup event para inicializar servicios en background
 @app.on_event("startup")
@@ -70,6 +75,8 @@ async def fix_problematic_api_paths(request: Request, call_next):
     response = await call_next(request)
     return response
 
+# Tenant middleware is already registered above
+
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
@@ -115,6 +122,9 @@ app.include_router(flow_orders_router, prefix="/api", tags=["flow-orders"])
 
 # WhatsApp settings management endpoints
 app.include_router(whatsapp_settings_router, prefix="/api", tags=["whatsapp-settings"])
+
+# Debug endpoints (only for development/testing)
+app.include_router(debug_router, tags=["debug"])
 
 @app.get("/")
 async def root():
