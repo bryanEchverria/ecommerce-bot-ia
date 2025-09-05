@@ -26,9 +26,9 @@ async def get_flow_orders(
     try:
         query = db.query(FlowPedido)
         
-        # Filtrar por cliente si se especifica
-        if client_id:
-            query = query.filter(FlowPedido.client_id == client_id)
+        # Filtrar por cliente si se especifica (skip para single tenant)
+        # if client_id:
+        #     query = query.filter(FlowPedido.client_id == client_id)
             
         # Filtrar por estado si se especifica
         if estado:
@@ -47,13 +47,17 @@ async def get_flow_orders(
             "pedidos": [
                 {
                     "id": pedido.id,
+                    "code": f"WA{pedido.id}",  # Código para compatibilidad con frontend
+                    "customer_name": f"Cliente WhatsApp ({pedido.telefono})",
                     "telefono": pedido.telefono,
-                    "client_id": pedido.client_id,
+                    "client_id": "sintestesia",  # Single tenant
                     "total": pedido.total,
+                    "status": "Completed" if pedido.estado == "pagado" else "Pending" if pedido.estado == "pendiente_pago" else "Cancelled",
                     "estado": pedido.estado,
                     "token": pedido.token,
                     "created_at": pedido.created_at,
-                    "updated_at": pedido.updated_at
+                    "updated_at": pedido.updated_at,
+                    "items": 1  # Valor por defecto para compatibilidad
                 }
                 for pedido in pedidos
             ],
@@ -77,9 +81,8 @@ async def get_flow_stats(db: Session = Depends(get_db)):
         pedidos_pendientes = db.query(FlowPedido).filter(FlowPedido.estado == "pendiente_pago").count()
         
         # Calcular total vendido (solo pedidos pagados)
-        total_vendido = db.query(FlowPedido).filter(FlowPedido.estado == "pagado").with_entities(
-            db.func.sum(FlowPedido.total)
-        ).scalar() or 0
+        from sqlalchemy import func
+        total_vendido = db.query(func.sum(FlowPedido.total)).filter(FlowPedido.estado == "pagado").scalar() or 0
         
         return {
             "total_pedidos": total_pedidos,
@@ -106,13 +109,17 @@ async def get_flow_order(order_id: str, db: Session = Depends(get_db)):
             
         return {
             "id": pedido.id,
+            "code": f"WA{pedido.id}",
+            "customer_name": f"Cliente WhatsApp ({pedido.telefono})",
             "telefono": pedido.telefono,
-            "client_id": pedido.client_id,
+            "client_id": "sintestesia",  # Single tenant
             "total": pedido.total,
+            "status": "Completed" if pedido.estado == "pagado" else "Pending" if pedido.estado == "pendiente_pago" else "Cancelled",
             "estado": pedido.estado,
             "token": pedido.token,
             "created_at": pedido.created_at,
             "updated_at": pedido.updated_at,
+            "items": 1,
             "flow_url": f"https://sandbox.flow.cl/app/web/pay.php?token={pedido.token}" if pedido.token else None
         }
         

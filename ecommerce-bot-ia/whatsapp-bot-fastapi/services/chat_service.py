@@ -76,6 +76,8 @@ async def process_with_openai(mensaje: str, client_info: Dict) -> str:
         return None
     
     try:
+        # FIX: Updated to OpenAI v1.x API syntax
+        client = openai.AsyncOpenAI()
         prompt = f"""
         Eres un asistente de ventas para {client_info['name']}, una tienda de {client_info['type']}.
         Cliente escribió: "{mensaje}"
@@ -84,7 +86,7 @@ async def process_with_openai(mensaje: str, client_info: Dict) -> str:
         Máximo 200 caracteres.
         """
         
-        response = await openai.ChatCompletion.acreate(
+        response = await client.chat.completions.create(
             model="gpt-3.5-turbo",
             messages=[{"role": "user", "content": prompt}],
             max_tokens=100
@@ -99,18 +101,18 @@ async def procesar_mensaje(telefono: str, mensaje: str) -> str:
     Main message processing function
     Integrates with Flow payment system for multi-tenant e-commerce
     """
-    # Import Flow service here to avoid circular imports
-    import sys
-    import os
-    from pathlib import Path
-    
-    # Add current directory to Python path for imports
-    current_dir = Path(__file__).parent
-    app_dir = current_dir.parent
-    sys.path.insert(0, str(current_dir))
-    sys.path.insert(0, str(app_dir))
-    
     try:
+        # Import Flow service here to avoid circular imports
+        import sys
+        import os
+        from pathlib import Path
+        
+        # Add current directory to Python path for imports
+        current_dir = Path(__file__).parent
+        app_dir = current_dir.parent
+        sys.path.insert(0, str(current_dir))
+        sys.path.insert(0, str(app_dir))
+        
         from flow_chat_service import procesar_mensaje_flow
         from database import SessionLocal
         
@@ -123,40 +125,50 @@ async def procesar_mensaje(telefono: str, mensaje: str) -> str:
         finally:
             db.close()
             
-    except ImportError as e:
-        print(f"Error importing Flow service: {e}")
+    except Exception as e:
+        print(f"Error in Flow processing: {e}")
         # Fallback to original logic if Flow service fails
         mensaje_lower = mensaje.lower().strip()
         client_info = await get_client_info(telefono)
         
         # Handle unknown clients
         if client_info["type"] == "unknown":
-            return f"""❌ Cliente no configurado: {telefono}
+            return f"""🌿 ¡Hola! Bienvenido a Green House
 
-✅ Clientes válidos:
-• +3456789012 → Green House (canábicos)
-• +1234567890 → Demo Company (electrónicos)  
-• +5678901234 → Mundo Canino (mascotas)
-• +9876543210 → Test Store (ropa)
+Lo siento, estoy experimentando algunos problemas técnicos en este momento.
 
-🧪 PRUEBA: Usa uno de estos números"""
+Nuestro equipo está trabajando para solucionarlo.
+
+🕐 Intenta de nuevo en unos minutos, por favor.
+
+¡Gracias por tu paciencia! 😊"""
 
         # Simple greeting response
         if any(word in mensaje_lower for word in ["hola", "hi", "hello", "buenas"]):
             return f"""{client_info['greeting']}
 
-🔧 Sistema Flow en mantenimiento - usando modo básico
-💡 Escribe "productos" para ver el catálogo"""
+¿Cómo puedo ayudarte hoy? 😊
 
-        # Fallback response
+💡 Puedes preguntarme sobre:
+• Productos disponibles
+• Precios y ofertas  
+• Información de la tienda"""
+
+        # Fallback response with AI if available
+        if OPENAI_AVAILABLE:
+            ai_response = await process_with_openai(mensaje, client_info)
+            if ai_response:
+                return ai_response
+        
         return f"""🤖 {client_info['name']} - Asistente Virtual
 
 📱 Recibí: "{mensaje}"
 
-⚠️ Sistema de pagos Flow en configuración
-💡 Funcionalidad completa estará disponible pronto
+¡Gracias por tu mensaje! En este momento nuestro sistema está procesando muchas consultas.
 
-¿En qué más te puedo ayudar?"""
+🔄 Estamos trabajando para darte una respuesta más completa.
+
+¿Hay algo específico en lo que te pueda ayudar mientras tanto?"""
     
     except Exception as e:
         print(f"Error in Flow processing: {e}")

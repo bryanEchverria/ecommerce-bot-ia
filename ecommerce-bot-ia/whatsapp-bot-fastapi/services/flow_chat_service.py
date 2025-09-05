@@ -65,7 +65,7 @@ def obtener_sesion(db: Session, telefono: str, client_id: str):
     if not sesion:
         sesion = FlowSesion(
             telefono=telefono,
-            client_id=client_id,
+            client_id="sintestesia",
             estado="INITIAL",
             datos="{}"
         )
@@ -83,14 +83,17 @@ def guardar_sesion(db: Session, sesion, estado: str = None, datos: dict = None):
     sesion.updated_at = datetime.utcnow()
     db.commit()
 
-def obtener_productos_cliente(db: Session, client_id: str):
-    """Obtiene los productos disponibles para un cliente"""
-    productos = db.query(FlowProduct).filter_by(client_id=client_id).all()
+def obtener_productos_cliente(db: Session):
+    """Obtiene los productos disponibles (single tenant)"""
+    productos = db.query(FlowProduct).all()
     if not productos:
         # Crear productos de ejemplo si no existen
         productos_ejemplo = [
-            {"nombre": "Pan", "precio": 1000, "descripcion": "Pan fresco artesanal"},
-            {"nombre": "Bebida", "precio": 1500, "descripcion": "Bebida refrescante natural"}
+            {"nombre": "iPhone 15 Pro", "precio": 1300, "descripcion": "iPhone 15 Pro con 256GB", "stock": 15},
+            {"nombre": "MacBook Air M3", "precio": 1200, "descripcion": "MacBook Air con chip M3", "stock": 8},
+            {"nombre": "iPad Air", "precio": 800, "descripcion": "iPad Air 2024", "stock": 12},
+            {"nombre": "AirPods Pro", "precio": 300, "descripcion": "AirPods Pro 2da generación", "stock": 25},
+            {"nombre": "Apple Watch", "precio": 400, "descripcion": "Apple Watch Series 9", "stock": 10}
         ]
         
         for prod_data in productos_ejemplo:
@@ -98,12 +101,13 @@ def obtener_productos_cliente(db: Session, client_id: str):
                 nombre=prod_data["nombre"],
                 precio=prod_data["precio"], 
                 descripcion=prod_data["descripcion"],
-                client_id=client_id
+                stock=prod_data.get("stock", 1),
+                client_id="sintestesia"  # Single tenant
             )
             db.add(producto)
         
         db.commit()
-        productos = db.query(FlowProduct).filter_by(client_id=client_id).all()
+        productos = db.query(FlowProduct).all()
     
     return productos
 
@@ -125,8 +129,7 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
 
 🧪 PRUEBA: Usa uno de estos números"""
 
-    client_id = client_info["client_id"]
-    sesion = obtener_sesion(db, telefono, client_id)
+    sesion = obtener_sesion(db, telefono, "sintestesia")
     datos_sesion = json.loads(sesion.datos) if sesion.datos else {}
     
     mensaje_lower = mensaje.lower().strip()
@@ -134,7 +137,7 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
     # Verificar pedido pendiente de pago
     pedido_pendiente = db.query(FlowPedido).filter_by(
         telefono=telefono,
-        client_id=client_id,
+        client_id="sintestesia",
         estado="pendiente_pago"
     ).first()
     
@@ -168,7 +171,7 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
     
     # Ver catálogo
     if mensaje_lower in ["1", "ver catalogo", "ver catálogo", "productos", "catalog"]:
-        productos = obtener_productos_cliente(db, client_id)
+        productos = obtener_productos_cliente(db)
         catalogo = f"📦 *Catálogo de {client_info['name']}:*\n"
         for prod in productos:
             catalogo += f"- {prod.nombre} (${prod.precio:.0f})\n"
@@ -179,7 +182,7 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
     # Procesamiento con OpenAI para extraer productos
     if sesion.estado in ["INITIAL", "BROWSING"] or any(word in mensaje_lower for word in ["quiero", "necesito", "comprar", "llevar"]):
         # Usar OpenAI para procesar el pedido
-        productos = obtener_productos_cliente(db, client_id)
+        productos = obtener_productos_cliente(db)
         productos_info = {prod.nombre.lower(): {"id": prod.id, "nombre": prod.nombre, "precio": prod.precio} 
                          for prod in productos}
         
@@ -221,7 +224,7 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
             # Crear pedido en BD
             pedido = FlowPedido(
                 telefono=telefono,
-                client_id=client_id,
+                client_id="sintestesia",
                 total=total,
                 estado="pendiente_pago"
             )
@@ -243,7 +246,7 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
             
             # Crear orden de pago en Flow
             descripcion = f"Pedido_{client_info['name']}_{pedido.id}"
-            url_pago = crear_orden_flow(str(pedido.id), int(total), descripcion, client_id, db)
+            url_pago = crear_orden_flow(str(pedido.id), int(total), descripcion, "sintestesia", db)
             
             # Preparar resumen del pedido
             resumen_productos = "\n".join([f"{item['cantidad']} x {item['nombre']}" 
@@ -271,7 +274,7 @@ Cuando termines el pago, escribe *pagado* para confirmar."""
         return "🐛 Para reportar un problema, envía un email a soporte@empresa.com\n\n" + menu_principal()
     
     if mensaje_lower == "4":
-        pedidos = db.query(FlowPedido).filter_by(telefono=telefono, client_id=client_id).all()
+        pedidos = db.query(FlowPedido).filter_by(telefono=telefono, client_id="sintestesia").all()
         if pedidos:
             respuesta = f"📋 Tus pedidos en {client_info['name']}:\n\n"
             for pedido in pedidos[-3:]:  # Últimos 3 pedidos
@@ -283,5 +286,35 @@ Cuando termines el pago, escribe *pagado* para confirmar."""
         else:
             return f"No tienes pedidos registrados en {client_info['name']}.\n\n" + menu_principal()
     
-    # Respuesta por defecto mejorada
+    # Respuesta por defecto con OpenAI
+    if OPENAI_AVAILABLE:
+        try:
+            client = openai.OpenAI()
+            productos = obtener_productos_cliente(db)
+            productos_info = [f"{prod.nombre} (${prod.precio})" for prod in productos]
+            
+            prompt = f"""
+            Eres un asistente de ventas para {client_info['name']}, una tienda de {client_info['type']}.
+            
+            Productos disponibles: {', '.join(productos_info)}
+            
+            Cliente escribió: "{mensaje}"
+            
+            Responde de manera amigable y útil. Si pregunta por productos, menciona los disponibles.
+            Si quiere comprar algo, dile que escriba el nombre del producto.
+            Máximo 200 caracteres.
+            """
+            
+            response = client.chat.completions.create(
+                model="gpt-3.5-turbo",
+                messages=[{"role": "user", "content": prompt}],
+                max_tokens=100
+            )
+            ai_response = response.choices[0].message.content.strip()
+            return ai_response + "\n\n" + menu_principal()
+            
+        except Exception as e:
+            print(f"OpenAI error: {e}")
+    
+    # Fallback si OpenAI falla
     return f"🤖 {client_info['name']} - Asistente Virtual\n\n📱 Recibí: \"{mensaje}\"\n\n💡 Puedo ayudarte con:\n• Ver catálogo de productos\n• Procesar pedidos\n• Consultar estado de compras\n• Información general\n\n" + menu_principal()

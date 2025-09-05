@@ -19,6 +19,17 @@ app = FastAPI(
     version="2.0.0"
 )
 
+# Startup event para inicializar servicios en background
+@app.on_event("startup")
+async def startup_event():
+    """Inicializa servicios en background al arrancar la aplicación"""
+    try:
+        from services.timeout_service import start_timeout_service
+        start_timeout_service()
+        print("✅ Background services initialized")
+    except Exception as e:
+        print(f"⚠️ Warning: Could not start background services: {e}")
+
 # Custom middleware to handle problematic API paths and reduce error notifications
 @app.middleware("http")
 async def fix_problematic_api_paths(request: Request, call_next):

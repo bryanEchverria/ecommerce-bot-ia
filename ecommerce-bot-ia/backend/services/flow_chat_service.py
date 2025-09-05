@@ -7,7 +7,7 @@ import os
 from sqlalchemy.orm import Session
 from models import FlowProduct, FlowPedido, FlowProductoPedido, FlowSesion, Product
 from services.flow_service import crear_orden_flow
-from datetime import datetime
+from datetime import datetime, timedelta
 
 # OpenAI integration (if available)
 try:
@@ -46,14 +46,57 @@ def obtener_sesion(db: Session, telefono: str):
         db.refresh(sesion)
     return sesion
 
-def guardar_sesion(db: Session, sesion, estado: str = None, datos: dict = None):
+def guardar_sesion(db: Session, sesion, estado: str = None, datos: dict = None, update_last_message: bool = True):
     """Guarda cambios en la sesión"""
     if estado:
         sesion.estado = estado
     if datos:
         sesion.datos = json.dumps(datos)
+    if update_last_message:
+        sesion.last_message_at = datetime.utcnow()
+        sesion.timeout_warning_sent = False  # Reset warning cuando hay nuevo mensaje
     sesion.updated_at = datetime.utcnow()
     db.commit()
+
+def check_conversation_timeout(db: Session, sesion) -> str:
+    """
+    Verifica si la conversación ha expirado y maneja timeouts
+    Returns: mensaje de timeout si aplica, None si no hay timeout
+    """
+    if not sesion.conversation_active:
+        return None
+        
+    now = datetime.utcnow()
+    time_since_last = now - sesion.last_message_at
+    
+    # 30 segundos sin respuesta - primera advertencia (PRUEBA)
+    if time_since_last >= timedelta(seconds=30) and not sesion.timeout_warning_sent:
+        sesion.timeout_warning_sent = True
+        db.commit()
+        return """⏰ *Seguimiento de Conversación*
+        
+¡Hola! Veo que ha pasado un tiempo desde tu último mensaje.
+
+¿Sigues interesado en completar tu compra o necesitas más información?
+
+👉 Escribe *continuar* para seguir, o *finalizar* para terminar la conversación.
+
+⏳ Si no respondes en 30 minutos más, finalizaré automáticamente la sesión."""
+
+    # 60 segundos sin respuesta - finalizar conversación (PRUEBA)
+    elif time_since_last >= timedelta(seconds=60):
+        sesion.conversation_active = False
+        sesion.estado = "FINALIZADA"
+        db.commit()
+        return """🔚 *Conversación Finalizada*
+
+Por tu seguridad y para optimizar nuestro servicio, he finalizado esta conversación por inactividad.
+
+Si necesitas ayuda nuevamente, envía *hola* para iniciar una nueva sesión.
+
+¡Gracias por contactar Sintestesia! 🙏"""
+    
+    return None
 
 def obtener_productos_disponibles(db: Session):
     """Obtiene productos disponibles consultando ambas tablas y validando stock"""
@@ -118,12 +161,35 @@ def obtener_productos(db: Session):
 def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
     """
     Procesa mensajes con lógica de Flow integrada
-    Sistema simplificado sin multi-tenant
+    Sistema simplificado sin multi-tenant con seguimiento de conversación
     """
     # Usar configuración única de tienda
     store_info = STORE_CONFIG
     
     sesion = obtener_sesion(db, telefono)
+    
+    # Manejar comandos especiales de timeout
+    mensaje_lower = mensaje.lower().strip()
+    if mensaje_lower == "continuar":
+        guardar_sesion(db, sesion, "INITIAL", {})
+        return f"✅ ¡Perfecto! Continuemos donde estábamos.\n\n{menu_principal()}"
+    elif mensaje_lower == "finalizar":
+        sesion.conversation_active = False
+        sesion.estado = "FINALIZADA"
+        db.commit()
+        return "👋 Conversación finalizada. ¡Gracias por contactar Sintestesia! Envía *hola* cuando necesites ayuda nuevamente."
+    
+    # Verificar timeout de conversación ANTES de procesar mensaje
+    timeout_message = check_conversation_timeout(db, sesion)
+    if timeout_message:
+        return timeout_message
+    
+    # Si la conversación no está activa, reactivar con saludo
+    if not sesion.conversation_active:
+        guardar_sesion(db, sesion, "INITIAL", {}, True)
+        sesion.conversation_active = True
+        db.commit()
+        return f"{store_info['greeting']}\n\n{menu_principal()}"
     datos_sesion = json.loads(sesion.datos) if sesion.datos else {}
     
     mensaje_lower = mensaje.lower().strip()
@@ -187,26 +253,32 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
             productos_lista = "\n".join([f"- {prod.nombre} (ID: {prod.id}, Precio: ${prod.precio})" for prod in productos])
             
             prompt = f"""
-            Eres un asistente de ventas ESTRICTO. Analiza este mensaje del cliente y extrae SOLO los productos que existen en la lista.
+            Eres un AGENTE DE VENTAS PROFESIONAL especializado en tecnología Apple para Sintestesia, una tienda premium de tecnología.
             
-            PRODUCTOS DISPONIBLES (SOLO ESTOS EXISTEN):
+            CONTEXTO: El cliente está interactuando contigo a través de WhatsApp para obtener asesoría personalizada.
+            
+            PRODUCTOS DISPONIBLES EN INVENTARIO:
             {productos_lista}
             
-            Mensaje del cliente: "{mensaje}"
+            MENSAJE DEL CLIENTE: "{mensaje}"
             
-            REGLAS ESTRICTAS:
-            1. NUNCA menciones productos que NO estén en la lista disponible
-            2. NUNCA inventes productos como "VapoTech", "Valotech", etc.
-            3. Si el cliente pide algo que NO existe, marca intencion como "no_disponible"
-            4. Solo usa nombres EXACTOS de la lista
-            5. Si no especifica cantidad, asumir 1
+            ANÁLISIS REQUERIDO:
+            1. Si menciona un producto ESPECÍFICO de la lista → marca "comprar"
+            2. Si consulta es GENERAL ("quiero comprar algo", "qué tienes") → marca "consulta_general"  
+            3. Si pide algo que NO existe → marca "no_disponible"
+            4. Si hace preguntas sobre productos → marca "consulta"
             
-            Responde SOLO en formato JSON válido:
+            REGLAS CRÍTICAS:
+            - NUNCA inventes productos no listados
+            - Solo usa nombres EXACTOS del inventario
+            - Para consultas generales NO asumas qué quiere
+            
+            RESPUESTA JSON OBLIGATORIA:
             {{
                 "productos": [
                     {{"id": <id_producto>, "nombre": "<nombre_exacto>", "cantidad": <cantidad>, "precio": <precio>}}
                 ],
-                "intencion": "comprar" | "consulta" | "no_disponible" | "otro"
+                "intencion": "comprar" | "consulta" | "consulta_general" | "no_disponible" | "otro"
             }}
             """
             
@@ -237,7 +309,77 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
                             "precio": item["precio"],
                             "cantidad": item["cantidad"]
                         }
+                elif result["intencion"] == "consulta_general":
+                    # Para consultas generales, preguntar qué busca específicamente
+                    try:
+                        prompt_consulta = f"""
+                        Eres un agente de ventas profesional de Sintestesia, tienda premium de tecnología Apple.
+                        
+                        PRODUCTOS DISPONIBLES: {', '.join([f"{prod.nombre} (${prod.precio})" for prod in productos])}
+                        
+                        CLIENTE ESCRIBIÓ: "{mensaje}"
+                        
+                        INSTRUCCIONES:
+                        - Pregunta qué tipo de producto específico busca
+                        - Sé profesional y consultivo
+                        - Ayúdalo a encontrar lo que necesita con preguntas específicas
+                        - Máximo 120 caracteres
+                        
+                        EJEMPLOS:
+                        "¿Qué tipo de dispositivo necesitas? ¿iPhone para comunicación, Mac para trabajo o iPad para entretenimiento?"
+                        """
+                        
+                        response_ai = client.chat.completions.create(
+                            model="gpt-4o-mini",
+                            messages=[{"role": "user", "content": prompt_consulta}],
+                            temperature=0.4,
+                            max_tokens=60
+                        )
+                        
+                        return response_ai.choices[0].message.content.strip()
+                        
+                    except Exception as e:
+                        print(f"Error OpenAI consulta: {e}")
+                        return "¿Qué tipo de producto estás buscando? ¿iPhone, Mac, iPad o accesorios?"
+                
                 elif result["intencion"] == "no_disponible":
+                    # Para consultas generales, preguntar qué producto específico busca
+                    if any(word in mensaje_lower for word in ["quiero", "necesito", "comprar", "producto", "algo"]):
+                        try:
+                            prompt_respuesta = f"""
+                            Eres un agente de ventas profesional especializado en tecnología para Sintestesia, una tienda premium de productos Apple y tecnología.
+                            
+                            MISIÓN: Ser un consultor experto que ayuda a los clientes a encontrar exactamente lo que necesitan.
+                            
+                            PRODUCTOS DISPONIBLES: {', '.join([f"{prod.nombre} (${prod.precio})" for prod in productos])}
+                            
+                            CLIENTE ESCRIBIÓ: "{mensaje}"
+                            
+                            INSTRUCCIONES:
+                            - Si la consulta es muy general (como "quiero comprar un producto"), pregunta QUÉ tipo de producto específico busca
+                            - Sé consultivo y profesional
+                            - Haz preguntas específicas para entender sus necesidades
+                            - NO recomiendes productos sin saber qué busca
+                            - Máximo 100 caracteres para mantener concisión
+                            
+                            EJEMPLOS:
+                            - "¿Qué tipo de producto tecnológico estás buscando? ¿iPhone, Mac, iPad o accesorios?"
+                            - "¿Para qué uso necesitas el equipo? ¿Trabajo, estudio o entretenimiento?"
+                            """
+                            
+                            response_ai = client.chat.completions.create(
+                                model="gpt-4o-mini",
+                                messages=[{"role": "user", "content": prompt_respuesta}],
+                                temperature=0.3,
+                                max_tokens=50
+                            )
+                            
+                            ai_response = response_ai.choices[0].message.content.strip()
+                            return ai_response
+                            
+                        except Exception as e:
+                            print(f"Error OpenAI respuesta: {e}")
+                    
                     return f"""❌ Lo siento, el producto que buscas no está disponible en nuestro catálogo actual.
                     
 📦 *Productos disponibles en {store_info['name']}:*

@@ -77,7 +77,7 @@ services:
       BASE_URL: ${BASE_URL:-https://webhook.sintestesia.cl}
       ENVIRONMENT: ${ENVIRONMENT:-production}
       # WhatsApp Provider Selection
-      WA_PROVIDER: ${WA_PROVIDER:-twilio}
+      WA_PROVIDER: meta
       # Meta WhatsApp Configuration
       WHATSAPP_TOKEN: ${WHATSAPP_TOKEN}
       WHATSAPP_PHONE_NUMBER_ID: ${WHATSAPP_PHONE_NUMBER_ID}

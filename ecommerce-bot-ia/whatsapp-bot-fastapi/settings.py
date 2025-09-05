@@ -18,36 +18,36 @@ WA_PROVIDER = os.getenv("WA_PROVIDER", "twilio")  # Default a Twilio por compati
 def get_config_from_db() -> Optional[dict]:
     """
     Obtiene configuración global de WhatsApp desde la base de datos (single tenant)
-    
+
     Returns:
         dict: Configuración global o None si no existe
     """
     try:
         import sys
         from pathlib import Path
-        
+
         # Agregar path del backend
         backend_path = Path(__file__).parent.parent / "backend"
         sys.path.append(str(backend_path))
-        
+
         from database import SessionLocal
         from models import WhatsAppSettings
         from encryption_service import decrypt_sensitive_data
-        
+
         db = SessionLocal()
         try:
             db_settings = db.query(WhatsAppSettings).filter(
                 WhatsAppSettings.is_active == True
             ).first()
-            
+
             if not db_settings:
                 return None
-            
+
             config = {
                 "provider": db_settings.provider,
                 "is_active": db_settings.is_active
             }
-            
+
             if db_settings.provider == "twilio":
                 config.update({
                     "twilio_account_sid": db_settings.twilio_account_sid,
@@ -60,12 +60,12 @@ def get_config_from_db() -> Optional[dict]:
                     "meta_phone_number_id": db_settings.meta_phone_number_id,
                     "meta_graph_api_version": db_settings.meta_graph_api_version
                 })
-            
+
             return config
-            
+
         finally:
             db.close()
-            
+
     except Exception as e:
         logger.error(f"Error getting config from DB: {str(e)}")
         return None
@@ -73,17 +73,17 @@ def get_config_from_db() -> Optional[dict]:
 def create_adapter_with_config(provider: str, config: dict) -> WhatsAppAdapter:
     """
     Crea un adapter con configuración específica
-    
+
     Args:
         provider: Tipo de proveedor ("twilio" o "meta")
         config: Configuración específica del proveedor
-        
+
     Returns:
         WhatsAppAdapter: Instancia del adapter configurado
     """
     # Backup de variables de entorno actuales
     os_backup = {}
-    
+
     try:
         if provider == "twilio":
             # Backup y establecer variables de entorno para Twilio
@@ -91,41 +91,41 @@ def create_adapter_with_config(provider: str, config: dict) -> WhatsAppAdapter:
             for var in twilio_vars:
                 if var in os.environ:
                     os_backup[var] = os.environ[var]
-            
+
             if config.get("twilio_account_sid"):
                 os.environ["TWILIO_ACCOUNT_SID"] = config["twilio_account_sid"]
             if config.get("twilio_auth_token"):
                 os.environ["TWILIO_AUTH_TOKEN"] = config["twilio_auth_token"]
             if config.get("twilio_from"):
                 os.environ["TWILIO_WHATSAPP_NUMBER"] = config["twilio_from"]
-            
+
             adapter = TwilioAdapter()
-            
+
         elif provider == "meta":
             # Backup y establecer variables de entorno para Meta
             meta_vars = ["WHATSAPP_TOKEN", "WHATSAPP_PHONE_NUMBER_ID", "GRAPH_API_VERSION"]
             for var in meta_vars:
                 if var in os.environ:
                     os_backup[var] = os.environ[var]
-            
+
             if config.get("meta_token"):
                 os.environ["WHATSAPP_TOKEN"] = config["meta_token"]
             if config.get("meta_phone_number_id"):
                 os.environ["WHATSAPP_PHONE_NUMBER_ID"] = config["meta_phone_number_id"]
             if config.get("meta_graph_api_version"):
                 os.environ["GRAPH_API_VERSION"] = config["meta_graph_api_version"]
-            
+
             adapter = MetaAdapter()
         else:
             raise ValueError(f"Unsupported provider: {provider}")
-        
+
         return adapter
-        
+
     finally:
         # Restaurar variables de entorno
         for var, value in os_backup.items():
             os.environ[var] = value
-        
+
         # Limpiar variables que no existían antes
         if provider == "twilio":
             for var in ["TWILIO_ACCOUNT_SID", "TWILIO_AUTH_TOKEN", "TWILIO_WHATSAPP_NUMBER"]:

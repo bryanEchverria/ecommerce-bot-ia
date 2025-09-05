@@ -45,22 +45,34 @@ def create_order(
     
     return TenantOrderResponse.from_orm(db_order)
 
-@router.get("/", response_model=List[TenantOrderResponse])
+@router.get("/")
 def get_orders(
     skip: int = 0,
     limit: int = 100,
-    db: Session = Depends(get_db),
-    current_client: TenantClient = Depends(get_current_client)
+    db: Session = Depends(get_db)
 ):
     """
-    Obtener órdenes del cliente autenticado.
-    Automáticamente filtradas por client_id.
+    Obtener pedidos de Flow para single tenant (sin autenticación).
     """
-    query = db.query(TenantOrder)
-    query = tenant_filter_query(query, TenantOrder, current_client.id)
+    # Solo obtener pedidos de Flow para simplificar
+    from models import FlowPedido
+    flow_pedidos = db.query(FlowPedido).order_by(FlowPedido.created_at.desc()).offset(skip).limit(limit).all()
     
-    orders = query.order_by(TenantOrder.created_at.desc()).offset(skip).limit(limit).all()
-    return [TenantOrderResponse.from_orm(order) for order in orders]
+    # Convertir a formato compatible con frontend
+    orders_data = []
+    for pedido in flow_pedidos:
+        orders_data.append({
+            "id": f"flow_{pedido.id}",
+            "code": f"WA{pedido.id}",
+            "customer_name": f"Cliente WhatsApp ({pedido.telefono})",
+            "total": str(pedido.total),
+            "status": "Completed" if pedido.estado == "pagado" else "Pending" if pedido.estado == "pendiente_pago" else "Cancelled",
+            "created_at": pedido.created_at.isoformat(),
+            "updated_at": pedido.updated_at.isoformat(),
+            "client_id": "sintestesia"
+        })
+    
+    return orders_data
 
 @router.get("/{order_id}", response_model=TenantOrderResponse)
 def get_order(

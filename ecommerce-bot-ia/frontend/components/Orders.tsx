@@ -6,7 +6,21 @@ import { DownloadIcon, PencilIcon } from './Icons';
 import { useTranslation } from 'react-i18next';
 import { useCurrency, formatCurrency } from './CurrencyContext';
 import { Order, OrderStatus } from '../types';
-import { tenantOrdersApi as ordersApi } from '../services/tenant-api';
+import { tenantOrdersApi } from '../services/tenant-api';
+
+const ordersApi = {
+  getAll: async () => {
+    try {
+      const response = await fetch('https://app.sintestesia.cl/api/flow-orders/');
+      if (!response.ok) throw new Error(`HTTP ${response.status}`);
+      const data = await response.json();
+      return data.pedidos || [];
+    } catch (error) {
+      console.error('Error fetching flow orders:', error);
+      return [];
+    }
+  }
+};
 import { useToast } from './Toast';
 import OrderDetailsModal from './OrderDetailsModal';
 

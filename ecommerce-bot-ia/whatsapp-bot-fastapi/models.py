@@ -124,5 +124,8 @@ class FlowSesion(Base):
     client_id = Column(String, index=True, nullable=False)  # Multi-tenant support
     estado = Column(String, default="INITIAL")
     datos = Column(Text)  # JSON con datos de la sesión
+    last_message_at = Column(DateTime, default=datetime.utcnow)  # Último mensaje del usuario
+    timeout_warning_sent = Column(Boolean, default=False)  # Si ya se envió advertencia de timeout
+    conversation_active = Column(Boolean, default=True)  # Si la conversación está activa
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

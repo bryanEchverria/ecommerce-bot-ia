@@ -8,8 +8,6 @@ import { useTranslation } from 'react-i18next';
 import { DollarSignIcon, ShoppingCartIcon, PackageIcon, UsersIcon } from './Icons';
 import { OrderStatusBadge } from './OrderStatusBadge';
 import { useCurrency, formatCurrency } from './CurrencyContext';
-import { tenantDashboardApi, tenantOrdersApi } from '../services/tenant-api';
-import { useAuth } from '../auth/AuthContext';
 
 interface StatCardProps {
     title: string;
@@ -116,41 +114,41 @@ const TimeRangeFilter: React.FC<{ selected: TimeRange, onSelect: (range: TimeRan
 
 
 const Dashboard: React.FC = () => {
+    console.log('Dashboard component rendering...');
     const { t, i18n } = useTranslation();
     const { currency } = useCurrency();
-    const { client, isAuthenticated } = useAuth(); // Get authenticated client
     const [timeRange, setTimeRange] = useState<TimeRange>('30d');
     const dateLocale = i18n.language.startsWith('es') ? es : enUS;
     const [orders, setOrders] = useState<any[]>([]);
     const [loading, setLoading] = useState(true);
 
-    // Load data from API
+    // Load data from API - copy exact working code from Orders component
     useEffect(() => {
         const loadData = async () => {
-            if (!isAuthenticated || !client) {
-                setLoading(false);
-                return;
-            }
-
             try {
                 setLoading(true);
-                // Only load tenant-aware orders - no more client data needed
-                const ordersData = await tenantOrdersApi.getAll();
+                console.log('Dashboard: Making fetch call to flow-orders...');
+                const response = await fetch('https://app.sintestesia.cl/api/flow-orders/');
+                console.log('Dashboard: Response received:', response.status);
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
+                const data = await response.json();
+                console.log('Dashboard: Data received:', data);
+                const ordersData = data.pedidos || [];
                 
-                // Transform API data to match frontend types
+                // Transform data exactly like Orders component
                 const transformedOrders = ordersData.map(o => ({
                     id: o.id,
-                    orderNumber: o.code, // tenant orders use 'code' field
+                    orderNumber: o.code,
                     customerName: o.customer_name,
                     date: o.created_at || o.date,
                     items: o.items || 1,
                     status: o.status,
-                    total: parseFloat(o.total) || 0
+                    total: typeof o.total === 'string' ? parseFloat(o.total) : o.total
                 }));
                 
                 setOrders(transformedOrders);
             } catch (error) {
-                console.error('Error loading tenant dashboard data:', error);
+                console.error('Error loading orders data:', error);
                 setOrders([]);
             } finally {
                 setLoading(false);
@@ -158,9 +156,10 @@ const Dashboard: React.FC = () => {
         };
 
         loadData();
-    }, [isAuthenticated, client]);
+    }, []);
 
     const dashboardData = useMemo(() => {
+        console.log('Dashboard: useMemo triggered with orders:', orders);
         const now = new Date();
         let currentPeriodStart, currentPeriodEnd;
         let previousPeriodStart, previousPeriodEnd;
@@ -196,8 +195,24 @@ const Dashboard: React.FC = () => {
         const currentInterval = { start: currentPeriodStart, end: currentPeriodEnd };
         const previousInterval = { start: previousPeriodStart, end: previousPeriodEnd };
 
-        const currentOrders = orders.filter(o => isWithinInterval(parseISO(o.date), currentInterval));
-        const previousOrders = orders.filter(o => isWithinInterval(parseISO(o.date), previousInterval));
+        const currentOrders = orders.filter(o => {
+            try {
+                const orderDate = parseISO(o.date);
+                return isWithinInterval(orderDate, currentInterval);
+            } catch (e) {
+                console.error('Error parsing date for order', o.id, ':', o.date, e);
+                return false;
+            }
+        });
+        const previousOrders = orders.filter(o => {
+            try {
+                const orderDate = parseISO(o.date);
+                return isWithinInterval(orderDate, previousInterval);
+            } catch (e) {
+                console.error('Error parsing date for order', o.id, ':', o.date, e);
+                return false;
+            }
+        });
 
         // In multi-tenant, we track customers from orders, not separate client data
         const currentCustomers = new Set(currentOrders.map(o => o.customerName)).size;

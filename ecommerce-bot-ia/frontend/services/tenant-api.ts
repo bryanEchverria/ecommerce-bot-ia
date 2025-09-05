@@ -106,9 +106,12 @@ async function authApiRequest<T>(endpoint: string, options?: RequestInit): Promi
 
 // Tenant Orders API (isolated by tenant)
 export const tenantOrdersApi = {
-  getAll: () => tenantApiRequest<any[]>('/tenant-orders/'),
+  getAll: async () => {
+    const response = await tenantApiRequest<{pedidos: any[]}>('/flow-orders/');
+    return response.pedidos;
+  },
   
-  getById: (id: string) => tenantApiRequest<any>(`/tenant-orders/${id}`),
+  getById: (id: string) => tenantApiRequest<any>(`/flow-orders/${id}`),
   
   create: (order: any) =>
     tenantApiRequest<any>('/tenant-orders/', {
@@ -187,30 +190,44 @@ export const legacyApi = {
 
 // Dashboard API - should use tenant-aware data
 export const tenantDashboardApi = {
-  // For now, use tenant orders as the primary data source
+  // Use Flow orders directly for single tenant
   getStats: async () => {
-    const orders = await tenantOrdersApi.getAll();
-    
-    // Calculate stats from tenant orders
-    const totalRevenue = orders.reduce((sum, order) => 
-      sum + (order.status !== 'Cancelled' ? (order.total || 0) : 0), 0);
-    const totalOrders = orders.length;
-    const completedOrders = orders.filter(o => o.status === 'Completed').length;
-    const pendingOrders = orders.filter(o => o.status === 'Pending').length;
-    
-    return {
-      totalRevenue,
-      totalOrders,
-      completedOrders,
-      pendingOrders,
-    };
+    try {
+      const response = await fetch('https://app.sintestesia.cl/api/flow-orders/');
+      const data = await response.json();
+      const orders = data.pedidos || [];
+      
+      // Calculate stats from Flow orders
+      const totalRevenue = orders.reduce((sum, order) => 
+        sum + (order.status !== 'Cancelled' ? (order.total || 0) : 0), 0);
+      const totalOrders = orders.length;
+      const completedOrders = orders.filter(o => o.status === 'Completed').length;
+      const pendingOrders = orders.filter(o => o.status === 'Pending').length;
+      
+      return {
+        totalRevenue,
+        totalOrders,
+        completedOrders,
+        pendingOrders,
+      };
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      return { totalRevenue: 0, totalOrders: 0, completedOrders: 0, pendingOrders: 0 };
+    }
   },
   
   getRecentOrders: async (limit = 10) => {
-    const orders = await tenantOrdersApi.getAll();
-    return orders
-      .sort((a, b) => new Date(b.created_at || b.date).getTime() - new Date(a.created_at || a.date).getTime())
-      .slice(0, limit);
+    try {
+      const response = await fetch('https://app.sintestesia.cl/api/flow-orders/');
+      const data = await response.json();
+      const orders = data.pedidos || [];
+      return orders
+        .sort((a, b) => new Date(b.created_at || b.date).getTime() - new Date(a.created_at || a.date).getTime())
+        .slice(0, limit);
+    } catch (error) {
+      console.error('Error fetching recent orders:', error);
+      return [];
+    }
   },
 };
 

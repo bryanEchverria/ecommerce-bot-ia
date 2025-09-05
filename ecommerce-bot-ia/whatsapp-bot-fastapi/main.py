@@ -16,12 +16,18 @@ sys.path.append(str(services_dir))
 from services.chat_service import procesar_mensaje
 from services.health_service import health_check
 from api.webhook_meta import router as meta_webhook_router
+from database import Base, engine # Importar Base y engine
 
 app = FastAPI(
     title="WhatsApp E-commerce Bot",
     description="Intelligent WhatsApp bot for multi-tenant e-commerce with dual WhatsApp providers (Twilio + Meta)",
     version="2.0.0"
 )
+
+# Crear tablas en la base de datos al iniciar la aplicación
+@app.on_event("startup")
+def startup_event():
+    Base.metadata.create_all(bind=engine)
 
 # Include Meta WhatsApp webhook router
 app.include_router(meta_webhook_router, tags=["meta-webhook"])

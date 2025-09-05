@@ -9,12 +9,66 @@ from database import get_db
 from services.flow_service import validar_firma
 from models import FlowPedido
 import logging
+import httpx
+import os
 
 # Configure logging
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
 router = APIRouter()
+
+async def enviar_confirmacion_whatsapp(telefono: str, pedido_id: str, total: float):
+    """Envía confirmación de pago exitoso por WhatsApp"""
+    try:
+        account_sid = os.getenv("TWILIO_ACCOUNT_SID")
+        auth_token = os.getenv("TWILIO_AUTH_TOKEN")
+        whatsapp_number = os.getenv("TWILIO_WHATSAPP_NUMBER", "whatsapp:+14155238886")
+        
+        if not account_sid or not auth_token:
+            logger.error("Twilio credentials not configured for payment confirmation")
+            return
+        
+        # Normalizar número de teléfono
+        if not telefono.startswith('whatsapp:'):
+            if not telefono.startswith('+'):
+                telefono = '+' + telefono
+            telefono = f'whatsapp:{telefono}'
+        
+        mensaje = f"""🎉 *¡PAGO CONFIRMADO!* 🎉
+
+✅ Tu pedido #{pedido_id} ha sido pagado exitosamente.
+
+💰 Total pagado: ${total:.0f}
+
+📦 Procesaremos tu pedido y te contactaremos para coordinar la entrega.
+
+🙌 ¡Gracias por confiar en Sintestesia!
+
+💬 Si tienes alguna pregunta, no dudes en escribirnos."""
+        
+        async with httpx.AsyncClient() as client:
+            auth = (account_sid, auth_token)
+            
+            data = {
+                'To': telefono,
+                'From': whatsapp_number,
+                'Body': mensaje
+            }
+            
+            response = await client.post(
+                f'https://api.twilio.com/2010-04-01/Accounts/{account_sid}/Messages.json',
+                auth=auth,
+                data=data
+            )
+            
+            if response.status_code == 201:
+                logger.info(f"✅ Payment confirmation sent successfully to {telefono}")
+            else:
+                logger.error(f"❌ Failed to send payment confirmation: {response.status_code} - {response.text}")
+                
+    except Exception as e:
+        logger.error(f"❌ Error sending payment confirmation: {str(e)}")
 
 @router.post("/flow/confirm")
 async def confirmar_pago_flow(request: Request, db: Session = Depends(get_db)):
@@ -51,8 +105,8 @@ async def confirmar_pago_flow(request: Request, db: Session = Depends(get_db)):
                 db.commit()
                 logger.info(f"✅ [Flow Confirm] Pedido #{order_id} marcado como PAGADO en la BD.")
                 
-                # Aquí podrías enviar notificación por WhatsApp si tienes el servicio
-                # enviar_notificacion_whatsapp(pedido.telefono, f"✅ Tu pedido #{order_id} ha sido pagado exitosamente!")
+                # Enviar confirmación por WhatsApp
+                await enviar_confirmacion_whatsapp(pedido.telefono, order_id, pedido.total)
                 
                 return {"status": "ok", "message": f"Pedido {order_id} pagado"}
             else:
@@ -107,6 +161,9 @@ async def flow_return(request: Request, db: Session = Depends(get_db)):
                 pedido.estado = "pagado"
                 db.commit()
                 logger.info(f"✅ [Flow Return] Pedido #{commerce_order} marcado como PAGADO en la BD.")
+                
+                # Enviar confirmación por WhatsApp
+                await enviar_confirmacion_whatsapp(pedido.telefono, commerce_order, pedido.total)
             
             return f"""
             <html>
