@@ -47,7 +47,9 @@ class TenantMiddleware(BaseHTTPMiddleware):
     BYPASS_PREFIXES = [
         "/auth/",
         "/static/",
-        "/twilio/"
+        "/twilio/",
+        "/flow/confirm",  # Flow webhooks
+        "/flow/return"    # Flow return URLs
     ]
 
     async def dispatch(self, request: Request, call_next) -> Response:

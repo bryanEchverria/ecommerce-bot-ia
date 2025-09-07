@@ -99,7 +99,15 @@ async def confirmar_pago_flow(request: Request, db: Session = Depends(get_db)):
         logger.info(f"💰 [Flow Confirm] Interpretando pago como: {'EXITOSO' if pagado else 'PENDIENTE/FALLIDO'}")
 
         if pagado:
-            pedido = db.query(FlowPedido).filter_by(id=order_id).first()
+            # Get tenant_id from context for multi-tenant support
+            from tenant_middleware import get_tenant_id
+            try:
+                tenant_id = get_tenant_id()
+                pedido = db.query(FlowPedido).filter_by(id=order_id, tenant_id=tenant_id).first()
+            except:
+                # Fallback for webhooks without tenant context - find by order_id only
+                pedido = db.query(FlowPedido).filter_by(id=order_id).first()
+                
             if pedido:
                 pedido.estado = "pagado"
                 db.commit()
@@ -156,7 +164,15 @@ async def flow_return(request: Request, db: Session = Depends(get_db)):
 
         # Procesar resultado del pago
         if status == "SUCCESS" and commerce_order:
-            pedido = db.query(FlowPedido).filter_by(id=commerce_order).first()
+            # Get tenant_id from context for multi-tenant support
+            from tenant_middleware import get_tenant_id
+            try:
+                tenant_id = get_tenant_id()
+                pedido = db.query(FlowPedido).filter_by(id=commerce_order, tenant_id=tenant_id).first()
+            except:
+                # Fallback for webhooks without tenant context - find by order_id only
+                pedido = db.query(FlowPedido).filter_by(id=commerce_order).first()
+                
             if pedido:
                 pedido.estado = "pagado"
                 db.commit()
@@ -221,20 +237,25 @@ async def flow_status():
 @router.get("/flow/orders")
 async def get_flow_orders_backoffice(limit: int = 50, db: Session = Depends(get_db)):
     """
-    Endpoint simple para consultar pedidos Flow desde el backoffice
+    Endpoint simple para consultar pedidos Flow desde el backoffice (tenant-aware)
     """
     try:
-        pedidos = db.query(FlowPedido).order_by(FlowPedido.created_at.desc()).limit(limit).all()
+        from tenant_middleware import get_tenant_id
+        tenant_id = get_tenant_id()
+        
+        pedidos = db.query(FlowPedido).filter(
+            FlowPedido.tenant_id == tenant_id
+        ).order_by(FlowPedido.created_at.desc()).limit(limit).all()
         
         return {
             "pedidos": [
                 {
                     "id": pedido.id,
                     "telefono": pedido.telefono,
-                    "client_id": pedido.client_id,
+                    "tenant_id": pedido.tenant_id,
                     "total": pedido.total,
                     "estado": pedido.estado,
-                    "created_at": pedido.created_at.isoformat(),
+                    "created_at": pedido.created_at.isoformat() if pedido.created_at else None,
                     "flow_url": f"https://sandbox.flow.cl/app/web/pay.php?token={pedido.token}" if pedido.token else None
                 }
                 for pedido in pedidos
@@ -248,16 +269,28 @@ async def get_flow_orders_backoffice(limit: int = 50, db: Session = Depends(get_
 @router.get("/flow/stats") 
 async def get_flow_stats_backoffice(db: Session = Depends(get_db)):
     """
-    Estadísticas básicas de Flow para el backoffice
+    Estadísticas básicas de Flow para el backoffice (tenant-aware)
     """
     try:
-        total_pedidos = db.query(FlowPedido).count()
-        pedidos_pagados = db.query(FlowPedido).filter(FlowPedido.estado == "pagado").count()
-        pedidos_pendientes = db.query(FlowPedido).filter(FlowPedido.estado == "pendiente_pago").count()
+        from tenant_middleware import get_tenant_id
+        tenant_id = get_tenant_id()
+        
+        total_pedidos = db.query(FlowPedido).filter(FlowPedido.tenant_id == tenant_id).count()
+        pedidos_pagados = db.query(FlowPedido).filter(
+            FlowPedido.tenant_id == tenant_id,
+            FlowPedido.estado == "pagado"
+        ).count()
+        pedidos_pendientes = db.query(FlowPedido).filter(
+            FlowPedido.tenant_id == tenant_id,
+            FlowPedido.estado == "pendiente_pago"
+        ).count()
         
         # Calculate total sold
         from sqlalchemy import func
-        result = db.query(func.sum(FlowPedido.total)).filter(FlowPedido.estado == "pagado").first()
+        result = db.query(func.sum(FlowPedido.total)).filter(
+            FlowPedido.tenant_id == tenant_id,
+            FlowPedido.estado == "pagado"
+        ).first()
         total_vendido = result[0] if result and result[0] else 0
         
         return {
