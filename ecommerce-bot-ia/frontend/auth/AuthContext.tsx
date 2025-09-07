@@ -35,10 +35,10 @@ interface AuthContextType extends AuthState {
 // Context
 const AuthContext = createContext<AuthContextType | undefined>(undefined);
 
-// Constants
+// Constants - Use relative URLs in production for multi-tenant support
 const BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://app.sintestesia.cl' 
-  : 'http://127.0.0.1:8002';
+  ? '' 
+  : 'http://127.0.0.1:8001';
 const TOKEN_REFRESH_THRESHOLD = 60 * 1000; // 60 seconds
 
 // Local Storage Keys

@@ -43,12 +43,19 @@ async def process_chat_message(data: ChatMessage, db: AsyncSession = Depends(get
         return {"error": "Chat service not available"}
     
     try:
+        # Get tenant_id from middleware context
+        if get_tenant_id is None:
+            raise HTTPException(status_code=500, detail="Tenant middleware not available")
+        
+        tenant_id = get_tenant_id()
+        
         # Procesar mensaje con el servicio de chat Flow (sync)
         # Convertir AsyncSession a Session para Flow service
         from database import SessionLocal
         sync_db = SessionLocal()
         try:
-            respuesta = procesar_mensaje(sync_db, data.telefono, data.mensaje)
+            # Pass tenant_id to the processing function
+            respuesta = procesar_mensaje(sync_db, data.telefono, data.mensaje, tenant_id)
         finally:
             sync_db.close()
         return {
@@ -65,24 +72,30 @@ async def process_chat_message(data: ChatMessage, db: AsyncSession = Depends(get
             "status": "error"
         }
 
-@router.get("/bot/products/search")
+@router.get("/bot-products-search")
 async def search_products_for_bot(
     query: str = Query(..., description="Search query", min_length=1),
     limit: int = Query(5, description="Number of results to return", ge=1, le=50),
-    current_client: TenantClient = Depends(get_current_client),
     db: AsyncSession = Depends(get_async_db)
 ):
     """
     Search products for WhatsApp bot responses using optimized SQL queries
-    Returns simplified product information with SQL-level filtering - filtered by client
+    Returns simplified product information with SQL-level filtering - filtered by tenant
     """
-    # Use optimized async search with SQL ILIKE - filtered by client
+    # Get tenant_id from middleware context (no auth required for bot)
+    if get_tenant_id is None:
+        raise HTTPException(status_code=500, detail="Tenant middleware not available")
+    
+    tenant_id = get_tenant_id()
+    print(f"DEBUG: Bot search - tenant_id = {tenant_id}")  # DEBUG
+    
+    # Use optimized async search with SQL ILIKE - filtered by tenant
     products = await crud_async.search_products_async(
         db=db,
         search_query=query,
         limit=limit,
         status="Active",
-        client_id=current_client.id
+        client_id=tenant_id
     )
     
     # Transform to bot-friendly format
@@ -105,20 +118,25 @@ async def get_products_by_category_for_bot(
     category: str = Query(..., description="Product category", min_length=1),
     limit: int = Query(10, description="Number of results to return", ge=1, le=100),
     offset: int = Query(0, description="Pagination offset", ge=0),
-    current_client: TenantClient = Depends(get_current_client),
     db: AsyncSession = Depends(get_async_db)
 ):
     """
-    Get products by category for bot responses with SQL-level filtering and pagination - filtered by client
+    Get products by category for bot responses with SQL-level filtering and pagination - filtered by tenant
     """
-    # Use optimized async query with SQL WHERE clause - filtered by client
+    # Get tenant_id from middleware context (no auth required for bot)
+    if get_tenant_id is None:
+        raise HTTPException(status_code=500, detail="Tenant middleware not available")
+    
+    tenant_id = get_tenant_id()
+    
+    # Use optimized async query with SQL WHERE clause - filtered by tenant
     products = await crud_async.get_products_by_category_async(
         db=db,
         category=category,
         limit=limit,
         offset=offset,
         status="Active",
-        client_id=current_client.id
+        client_id=tenant_id
     )
     
     # Transform to bot-friendly format
@@ -137,14 +155,19 @@ async def get_products_by_category_for_bot(
 
 @router.get("/bot/products/catalog")
 async def get_catalog_for_bot(
-    current_client: TenantClient = Depends(get_current_client),
     db: AsyncSession = Depends(get_async_db)
 ):
     """
-    Get catalog summary for bot responses using optimized SQL aggregation - filtered by client
+    Get catalog summary for bot responses using optimized SQL aggregation - filtered by tenant
     """
-    # Use optimized catalog summary with SQL GROUP BY - filtered by client
-    catalog_summary = await crud_async.get_catalog_summary_async(db, client_id=current_client.id)
+    # Get tenant_id from middleware context (no auth required for bot)
+    if get_tenant_id is None:
+        raise HTTPException(status_code=500, detail="Tenant middleware not available")
+    
+    tenant_id = get_tenant_id()
+    
+    # Use optimized catalog summary with SQL GROUP BY - filtered by tenant
+    catalog_summary = await crud_async.get_catalog_summary_async(db, client_id=tenant_id)
     
     return {
         "categories": catalog_summary['categories'],

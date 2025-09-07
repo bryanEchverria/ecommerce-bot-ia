@@ -9,7 +9,7 @@ import { format, parseISO } from 'date-fns';
 import { es, enUS } from 'date-fns/locale';
 import { useTranslation } from 'react-i18next';
 import { useCurrency, formatCurrency } from './CurrencyContext';
-import { campaignsApi, productsApi } from '../services/api';
+import { campaignsApi, productsApi } from '../services/tenant-api';
 import { useToast } from './Toast';
 
 const Campaigns: React.FC = () => {

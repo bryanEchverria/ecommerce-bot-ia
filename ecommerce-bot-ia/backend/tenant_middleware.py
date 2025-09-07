@@ -42,6 +42,13 @@ class TenantMiddleware(BaseHTTPMiddleware):
         "/openapi.json",
         "/redoc"
     ]
+    
+    # Path prefixes that don't require tenant resolution
+    BYPASS_PREFIXES = [
+        "/auth/",
+        "/static/",
+        "/twilio/"
+    ]
 
     async def dispatch(self, request: Request, call_next) -> Response:
         """Process request and resolve tenant_id."""
@@ -92,12 +99,16 @@ class TenantMiddleware(BaseHTTPMiddleware):
         if path in self.BYPASS_PATHS:
             return True
         
+        # Check bypass prefixes
+        if any(path.startswith(prefix) for prefix in self.BYPASS_PREFIXES):
+            return True
+        
         # Allow specific debug endpoints (not tenant-related ones)
         if path in ["/__debug/health", "/__debug/tenant/cache", "/__debug/tenant/cache/clear"]:
             return True
             
         # Allow static assets
-        if path.startswith("/static/") or path.endswith(('.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.ico', '.svg', '.woff', '.woff2', '.ttf', '.eot')):
+        if path.endswith(('.css', '.js', '.png', '.jpg', '.jpeg', '.gif', '.ico', '.svg', '.woff', '.woff2', '.ttf', '.eot')):
             return True
             
         return False
@@ -242,7 +253,9 @@ def get_tenant_id() -> str:
         HTTPException: If no tenant_id is set in context
     """
     tenant_id = _tenant_context.get()
+    print(f"DEBUG get_tenant_id: context value = {tenant_id}")  # DEBUG
     if not tenant_id:
+        print("DEBUG get_tenant_id: No tenant_id in context!")  # DEBUG
         raise HTTPException(
             status_code=400,
             detail="Tenant no resuelto"

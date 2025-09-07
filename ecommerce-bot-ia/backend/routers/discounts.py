@@ -5,6 +5,7 @@ from uuid import uuid4
 from database import get_async_db
 from models import Discount as DiscountModel
 from schemas import Discount, DiscountCreate, DiscountUpdate
+from tenant_middleware import get_tenant_id
 import crud_async
 
 router = APIRouter()
@@ -15,8 +16,13 @@ async def get_discounts(
     limit: int = Query(100, ge=1, le=1000), 
     db: AsyncSession = Depends(get_async_db)
 ):
-    """Get discounts with async pagination"""
-    return await crud_async.get_discounts_async(db, skip=skip, limit=limit)
+    """Get discounts with async pagination - filtered by tenant"""
+    # Get tenant_id from middleware context
+    tenant_id = get_tenant_id()
+    
+    return await crud_async.get_discounts_async(
+        db, skip=skip, limit=limit, client_id=tenant_id
+    )
 
 @router.get("/discounts/{discount_id}", response_model=Discount)
 async def get_discount(

@@ -1,13 +1,27 @@
-// Tenant-aware API services with JWT authentication
-// This file replaces the legacy api.ts for multi-tenant operations
+// Tenant-aware API services with JWT authentication and automatic subdomain detection
+// This file provides multi-tenant API support with dynamic URL configuration
 
-const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://app.sintestesia.cl' 
-  : 'http://127.0.0.1:8002';
+// Auto-detect current hostname for API calls
+function getCurrentHostname(): string {
+  if (typeof window !== 'undefined') {
+    return window.location.hostname;
+  }
+  return 'localhost';
+}
 
-const AUTH_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://app.sintestesia.cl' 
-  : 'http://127.0.0.1:8002';
+// Get the appropriate API base URL based on environment and current hostname
+function getApiBaseUrl(): string {
+  if (process.env.NODE_ENV === 'production') {
+    // Use relative URLs in production - nginx will proxy to backend
+    // This allows each subdomain to proxy to the same backend with different tenant context
+    return '';
+  }
+  // In development, use localhost with port 8001
+  return 'http://127.0.0.1:8001';
+}
+
+const API_BASE_URL = getApiBaseUrl();
+const AUTH_BASE_URL = getApiBaseUrl();
 
 // Get auth token from localStorage with fallback support
 function getAuthToken(): string | null {
@@ -188,14 +202,13 @@ export const legacyApi = {
   },
 };
 
-// Dashboard API - should use tenant-aware data
+// Dashboard API - tenant-aware with dynamic URLs
 export const tenantDashboardApi = {
-  // Use Flow orders directly for single tenant
+  // Use Flow orders with tenant-aware API calls
   getStats: async () => {
     try {
-      const response = await fetch('https://app.sintestesia.cl/api/flow-orders/');
-      const data = await response.json();
-      const orders = data.pedidos || [];
+      const response = await tenantApiRequest<{pedidos: any[]}>('/flow-orders/');
+      const orders = response.pedidos || [];
       
       // Calculate stats from Flow orders
       const totalRevenue = orders.reduce((sum, order) => 
@@ -218,9 +231,8 @@ export const tenantDashboardApi = {
   
   getRecentOrders: async (limit = 10) => {
     try {
-      const response = await fetch('https://app.sintestesia.cl/api/flow-orders/');
-      const data = await response.json();
-      const orders = data.pedidos || [];
+      const response = await tenantApiRequest<{pedidos: any[]}>('/flow-orders/');
+      const orders = response.pedidos || [];
       return orders
         .sort((a, b) => new Date(b.created_at || b.date).getTime() - new Date(a.created_at || a.date).getTime())
         .slice(0, limit);
@@ -231,9 +243,86 @@ export const tenantDashboardApi = {
   },
 };
 
+// Tenant-aware Products API (automatically filtered by backend tenant middleware)
+export const tenantProductsApi = {
+  getAll: () => tenantApiRequest<any[]>('/products'),
+  
+  getById: (id: string) => tenantApiRequest<any>(`/products/${id}`),
+  
+  create: (product: any) =>
+    tenantApiRequest<any>('/products', {
+      method: 'POST',
+      body: JSON.stringify(product),
+    }),
+  
+  update: (id: string, product: any) =>
+    tenantApiRequest<any>(`/products/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(product),
+    }),
+  
+  delete: (id: string) =>
+    tenantApiRequest<any>(`/products/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
+// Tenant-aware Campaigns API (automatically filtered by backend tenant middleware)
+export const tenantCampaignsApi = {
+  getAll: () => tenantApiRequest<any[]>('/campaigns'),
+  
+  getById: (id: string) => tenantApiRequest<any>(`/campaigns/${id}`),
+  
+  create: (campaign: any) =>
+    tenantApiRequest<any>('/campaigns', {
+      method: 'POST',
+      body: JSON.stringify(campaign),
+    }),
+  
+  update: (id: string, campaign: any) =>
+    tenantApiRequest<any>(`/campaigns/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(campaign),
+    }),
+  
+  delete: (id: string) =>
+    tenantApiRequest<any>(`/campaigns/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
+// Tenant-aware Discounts API (automatically filtered by backend tenant middleware)
+export const tenantDiscountsApi = {
+  getAll: () => tenantApiRequest<any[]>('/discounts'),
+  
+  getById: (id: string) => tenantApiRequest<any>(`/discounts/${id}`),
+  
+  create: (discount: any) =>
+    tenantApiRequest<any>('/discounts', {
+      method: 'POST',
+      body: JSON.stringify(discount),
+    }),
+  
+  update: (id: string, discount: any) =>
+    tenantApiRequest<any>(`/discounts/${id}`, {
+      method: 'PUT',
+      body: JSON.stringify(discount),
+    }),
+  
+  delete: (id: string) =>
+    tenantApiRequest<any>(`/discounts/${id}`, {
+      method: 'DELETE',
+    }),
+};
+
 // Export for backward compatibility (gradual migration)
 export const ordersApi = tenantOrdersApi;
 export const dashboardApi = tenantDashboardApi;
+
+// NEW SECURE API EXPORTS - Use these instead of legacy api.ts
+export const productsApi = tenantProductsApi;
+export const campaignsApi = tenantCampaignsApi;
+export const discountsApi = tenantDiscountsApi;
 
 // Mark legacy clients API as unsafe - should not be used in multi-tenant context
 export const clientsApi = {

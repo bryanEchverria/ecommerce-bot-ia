@@ -134,7 +134,9 @@ async def twilio_webhook(request: Request):
             # by calling the appropriate functions based on the message content
             
             # Use TwiML response (doesn't consume daily limit in sandbox)
-            response_message = await process_whatsapp_message(phone_number, message_body, message_sid)
+            # For Twilio, we'll use ACME Corporation as the default tenant
+            tenant_id = "0c063a0b-a773-46d7-a8d3-8bec58aaa5ef"  # ACME Corporation
+            response_message = await process_whatsapp_message(phone_number, message_body, message_sid, tenant_id)
             
             return PlainTextResponse(
                 content=response_message,
@@ -149,7 +151,7 @@ async def twilio_webhook(request: Request):
         logger.error(f"Error processing Twilio webhook: {str(e)}")
         return PlainTextResponse(content="", status_code=200)
 
-async def process_whatsapp_message_text(phone_number: str, message: str, message_sid: str) -> str:
+async def process_whatsapp_message_text(phone_number: str, message: str, message_sid: str, tenant_id: str = None) -> str:
     """
     Procesa un mensaje de WhatsApp usando OpenAI y devuelve solo el texto de respuesta
     """
@@ -161,7 +163,7 @@ async def process_whatsapp_message_text(phone_number: str, message: str, message
             # Use Flow service with real DB session (sync)
             sync_db = SessionLocal()
             try:
-                response_text = procesar_mensaje_flow(sync_db, phone_number, message)
+                response_text = procesar_mensaje_flow(sync_db, phone_number, message, tenant_id)
                 return response_text
             finally:
                 sync_db.close()
@@ -176,7 +178,7 @@ async def process_whatsapp_message_text(phone_number: str, message: str, message
         logger.error(f"Error processing message: {str(e)}")
         return "Lo siento, ocurrió un error procesando tu mensaje. Intenta de nuevo."
 
-async def process_whatsapp_message(phone_number: str, message: str, message_sid: str) -> str:
+async def process_whatsapp_message(phone_number: str, message: str, message_sid: str, tenant_id: str = None) -> str:
     """
     Procesa un mensaje de WhatsApp usando OpenAI y devuelve una respuesta en formato TwiML
     """
@@ -188,7 +190,7 @@ async def process_whatsapp_message(phone_number: str, message: str, message_sid:
             # Use Flow service with real DB session (sync)
             sync_db = SessionLocal()
             try:
-                response_text = procesar_mensaje_flow(sync_db, phone_number, message)
+                response_text = procesar_mensaje_flow(sync_db, phone_number, message, tenant_id)
             finally:
                 sync_db.close()
         except ImportError:
@@ -254,12 +256,25 @@ async def test_twilio_integration():
     """
     Endpoint de prueba para verificar que la integración está funcionando
     """
-    return {
-        "status": "active",
-        "message": "Twilio integration is working",
-        "webhook_url": "https://webhook.sintestesia.cl/twilio/webhook",
-        "status_callback_url": "https://webhook.sintestesia.cl/twilio/status",
-        "configured_number": TWILIO_WHATSAPP_NUMBER,
-        "account_sid": TWILIO_ACCOUNT_SID[:8] + "..." if TWILIO_ACCOUNT_SID else None,
-        "auth_token_configured": bool(TWILIO_AUTH_TOKEN)
-    }
+    try:
+        return {
+            "status": "active",
+            "message": "Twilio integration is working",
+            "webhook_url": "https://webhook.sintestesia.cl/twilio/webhook",
+            "status_callback_url": "https://webhook.sintestesia.cl/twilio/status",
+            "configured_number": TWILIO_WHATSAPP_NUMBER,
+            "account_sid": TWILIO_ACCOUNT_SID[:8] + "..." if TWILIO_ACCOUNT_SID else None,
+            "auth_token_configured": bool(TWILIO_AUTH_TOKEN),
+            "environment_check": {
+                "TWILIO_ACCOUNT_SID": TWILIO_ACCOUNT_SID is not None,
+                "TWILIO_AUTH_TOKEN": TWILIO_AUTH_TOKEN is not None,
+                "TWILIO_WHATSAPP_NUMBER": TWILIO_WHATSAPP_NUMBER is not None
+            }
+        }
+    except Exception as e:
+        logger.error(f"Error in Twilio test endpoint: {str(e)}")
+        return {
+            "status": "error",
+            "message": f"Error: {str(e)}",
+            "error_type": type(e).__name__
+        }

@@ -32,12 +32,24 @@ Elige una opción:
 3️⃣ Reportar un problema
 4️⃣ Consultar estado de mi pedido"""
 
-def obtener_sesion(db: Session, telefono: str):
-    """Obtiene o crea una sesión para el usuario"""
-    sesion = db.query(FlowSesion).filter_by(telefono=telefono).first()
+def obtener_sesion(db: Session, telefono: str, tenant_id: str = None):
+    """Obtiene o crea una sesión para el usuario - multi-tenant aware"""
+    # Import here to avoid circular dependencies
+    from tenant_middleware import get_tenant_id
+    
+    # Get tenant_id from middleware context if not provided
+    if not tenant_id:
+        try:
+            tenant_id = get_tenant_id()
+        except Exception:
+            # Fallback to default tenant if middleware context not available
+            tenant_id = "default-tenant-000"
+    
+    sesion = db.query(FlowSesion).filter_by(telefono=telefono, tenant_id=tenant_id).first()
     if not sesion:
         sesion = FlowSesion(
             telefono=telefono,
+            tenant_id=tenant_id,
             estado="INITIAL",
             datos="{}"
         )
@@ -98,16 +110,21 @@ Si necesitas ayuda nuevamente, envía *hola* para iniciar una nueva sesión.
     
     return None
 
-def obtener_productos_disponibles(db: Session):
-    """Obtiene productos disponibles consultando ambas tablas y validando stock"""
-    # Consultar productos principales con stock
-    productos_principales = db.query(Product).filter(
+def obtener_productos_disponibles(db: Session, tenant_id: str = None):
+    """Obtiene productos disponibles consultando ambas tablas y validando stock - filtrado por tenant"""
+    # Consultar productos principales con stock filtrado por tenant
+    query = db.query(Product).filter(
         Product.status.in_(["Active", "active"]),
         Product.stock > 0
-    ).all()
+    )
     
-    # Consultar productos Flow
-    productos_flow = db.query(FlowProduct).all()
+    if tenant_id:
+        query = query.filter(Product.client_id == tenant_id)
+    
+    productos_principales = query.all()
+    
+    # Consultar productos Flow filtrados por tenant
+    productos_flow = db.query(FlowProduct).filter_by(tenant_id=tenant_id).all() if tenant_id else db.query(FlowProduct).all()
     
     # Sincronizar: crear productos Flow que no existen pero sí en principales
     flow_nombres = {p.nombre for p in productos_flow}
@@ -119,7 +136,8 @@ def obtener_productos_disponibles(db: Session):
             flow_product = FlowProduct(
                 nombre=producto.name,
                 precio=precio,
-                descripcion=producto.description or f"{producto.name} - {producto.category}"
+                descripcion=producto.description or f"{producto.name} - {producto.category}",
+                tenant_id=tenant_id or "default-tenant"
             )
             db.add(flow_product)
             print(f"🔄 Sincronizando: {producto.name} -> FlowProduct")
@@ -127,16 +145,21 @@ def obtener_productos_disponibles(db: Session):
     # Commit cambios de sincronización
     db.commit()
     
-    # Obtener productos Flow actualizados con información de stock
-    productos_flow = db.query(FlowProduct).all()
+    # Obtener productos Flow actualizados con información de stock filtrados por tenant
+    productos_flow = db.query(FlowProduct).filter_by(tenant_id=tenant_id).all() if tenant_id else db.query(FlowProduct).all()
     productos_disponibles = []
     
     for flow_prod in productos_flow:
-        # Buscar producto principal correspondiente para verificar stock
-        producto_principal = db.query(Product).filter(
+        # Buscar producto principal correspondiente para verificar stock (tenant-aware)
+        query = db.query(Product).filter(
             Product.name == flow_prod.nombre,
             Product.status.in_(["Active", "active"])
-        ).first()
+        )
+        
+        if tenant_id:
+            query = query.filter(Product.client_id == tenant_id)
+            
+        producto_principal = query.first()
         
         if producto_principal and producto_principal.stock > 0:
             # Actualizar precio si cambió
@@ -154,19 +177,19 @@ def obtener_productos_disponibles(db: Session):
     
     return productos_disponibles
 
-def obtener_productos(db: Session):
+def obtener_productos(db: Session, tenant_id: str = None):
     """Función legacy que mantiene compatibilidad"""
-    return obtener_productos_disponibles(db)
+    return obtener_productos_disponibles(db, tenant_id)
 
-def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
+def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: str = None) -> str:
     """
     Procesa mensajes con lógica de Flow integrada
-    Sistema simplificado sin multi-tenant con seguimiento de conversación
+    Multi-tenant compatible con seguimiento de conversación
     """
     # Usar configuración única de tienda
     store_info = STORE_CONFIG
     
-    sesion = obtener_sesion(db, telefono)
+    sesion = obtener_sesion(db, telefono, tenant_id)
     
     # Manejar comandos especiales de timeout
     mensaje_lower = mensaje.lower().strip()
@@ -194,9 +217,10 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
     
     mensaje_lower = mensaje.lower().strip()
     
-    # Verificar pedido pendiente de pago
+    # Verificar pedido pendiente de pago (tenant-aware)
     pedido_pendiente = db.query(FlowPedido).filter_by(
         telefono=telefono,
+        tenant_id=sesion.tenant_id,
         estado="pendiente_pago"
     ).first()
     
@@ -230,7 +254,7 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
     
     # Ver catálogo
     if mensaje_lower in ["1", "ver catalogo", "ver catálogo", "productos", "catalog"]:
-        productos = obtener_productos_disponibles(db)
+        productos = obtener_productos_disponibles(db, tenant_id)
         catalogo = f"📦 *Catálogo de {store_info['name']}:*\n"
         for prod in productos:
             stock_info = f" (Stock: {getattr(prod, 'stock_disponible', '?')})" if hasattr(prod, 'stock_disponible') else ""
@@ -246,7 +270,7 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
     
     # Procesamiento con OpenAI para extraer productos
     if sesion.estado in ["INITIAL", "BROWSING"] or any(word in mensaje_lower for word in ["quiero", "necesito", "comprar", "llevar"]):
-        productos = obtener_productos(db)
+        productos = obtener_productos(db, tenant_id)
         
         if OPENAI_AVAILABLE and productos:
             # Usar OpenAI para interpretar el pedido
@@ -424,8 +448,11 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
             pedido_validado = {}
             
             for prod_id, item in pedido_detectado.items():
-                # Buscar producto principal para verificar stock
-                producto_principal = db.query(Product).filter(Product.name == item["nombre"]).first()
+                # Buscar producto principal para verificar stock (tenant-aware)
+                query = db.query(Product).filter(Product.name == item["nombre"])
+                if tenant_id:
+                    query = query.filter(Product.client_id == tenant_id)
+                producto_principal = query.first()
                 
                 if producto_principal:
                     if producto_principal.stock >= item["cantidad"]:
@@ -516,6 +543,7 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
             # Crear pedido en BD
             pedido = FlowPedido(
                 telefono=telefono,
+                tenant_id=sesion.tenant_id,
                 total=total,
                 estado="pendiente_pago"
             )
@@ -534,8 +562,11 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
                 )
                 db.add(producto_pedido)
                 
-                # ACTUALIZAR STOCK EN EL BACKOFFICE
-                producto_principal = db.query(Product).filter(Product.name == item["nombre"]).first()
+                # ACTUALIZAR STOCK EN EL BACKOFFICE (tenant-aware)
+                query = db.query(Product).filter(Product.name == item["nombre"])
+                if tenant_id:
+                    query = query.filter(Product.client_id == tenant_id)
+                producto_principal = query.first()
                 if producto_principal:
                     stock_anterior = producto_principal.stock
                     producto_principal.stock -= item["cantidad"]
@@ -583,7 +614,7 @@ Cuando termines el pago, escribe *pagado* para confirmar."""
         return "🐛 Para reportar un problema, envía un email a soporte@empresa.com\n\n" + menu_principal()
     
     if mensaje_lower == "4":
-        pedidos = db.query(FlowPedido).filter_by(telefono=telefono).all()
+        pedidos = db.query(FlowPedido).filter_by(telefono=telefono, tenant_id=sesion.tenant_id).all()
         if pedidos:
             respuesta = f"📋 Tus pedidos en {store_info['name']}:\n\n"
             for pedido in pedidos[-3:]:  # Últimos 3 pedidos

@@ -1,6 +1,6 @@
 import React, { createContext, useContext, useState, useEffect, ReactNode } from 'react';
 import { Discount, DiscountType } from '../types';
-import { discountsApi } from '../services/api';
+import { discountsApi } from '../services/tenant-api';
 
 interface DiscountsContextType {
   discounts: Discount[];

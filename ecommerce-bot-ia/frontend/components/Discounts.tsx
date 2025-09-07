@@ -7,7 +7,7 @@ import DiscountModal from './DiscountModal';
 import { DiscountStatusBadge } from './DiscountStatusBadge';
 import { useTranslation } from 'react-i18next';
 import { useCurrency, formatCurrency } from './CurrencyContext';
-import { discountsApi, productsApi } from '../services/api';
+import { discountsApi, productsApi } from '../services/tenant-api';
 import { useToast } from './Toast';
 import { useDiscounts } from './DiscountsContext';
 

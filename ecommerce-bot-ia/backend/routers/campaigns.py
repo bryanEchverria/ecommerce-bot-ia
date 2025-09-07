@@ -6,6 +6,7 @@ from uuid import uuid4
 from database import get_async_db
 from models import Campaign as CampaignModel
 from schemas import Campaign, CampaignCreate, CampaignUpdate
+from tenant_middleware import get_tenant_id
 import crud_async
 
 router = APIRouter()
@@ -26,8 +27,13 @@ async def get_campaigns(
     status: Optional[str] = Query(None, description="Filter by status"),
     db: AsyncSession = Depends(get_async_db)
 ):
-    """Get campaigns with async pagination and SQL filtering"""
-    campaigns = await crud_async.get_campaigns_async(db, skip=skip, limit=limit, status=status)
+    """Get campaigns with async pagination and SQL filtering - filtered by tenant"""
+    # Get tenant_id from middleware context
+    tenant_id = get_tenant_id()
+    
+    campaigns = await crud_async.get_campaigns_async(
+        db, skip=skip, limit=limit, status=status, client_id=tenant_id
+    )
     
     # Convert product_ids from JSON string to list
     for campaign in campaigns:

@@ -1,6 +1,12 @@
+// ⚠️ DEPRECATED: This file is deprecated and unsafe for multi-tenant use
+// Use 'tenant-api.ts' instead for proper tenant isolation
+// This file will be removed in future versions
+
+console.warn('WARNING: Using deprecated api.ts - migrate to tenant-api.ts for multi-tenant safety');
+
 const API_BASE_URL = process.env.NODE_ENV === 'production' 
-  ? 'https://app.sintestesia.cl' 
-  : 'http://127.0.0.1:8002';
+  ? '' 
+  : 'http://127.0.0.1:8001';
 
 // Get auth token from localStorage
 function getAuthToken(): string | null {

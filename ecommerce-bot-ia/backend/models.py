@@ -17,6 +17,7 @@ class Product(Base):
     height_cm = Column(Float, nullable=True)  # Alto en centímetros
     image_url = Column(String)
     status = Column(String)  # Active, Archived, OutOfStock
+    client_id = Column(String, nullable=True, index=True)  # Multi-tenant support
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -25,11 +26,12 @@ class Client(Base):
     
     id = Column(String, primary_key=True, index=True)
     name = Column(String, index=True)
-    email = Column(String, unique=True, index=True)
+    email = Column(String, index=True)  # Changed from unique=True for multi-tenant
     phone = Column(String)
     join_date = Column(DateTime)
     total_spent = Column(Float, default=0.0)
     avatar_url = Column(String)
+    client_id = Column(String, nullable=True, index=True)  # Multi-tenant support
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
     
@@ -47,6 +49,7 @@ class Order(Base):
     total = Column(Float)
     status = Column(String)  # Pending, Received, Shipping, Delivered, Cancelled
     items = Column(Integer)
+    client_id = Column(String, nullable=True, index=True)  # Multi-tenant support
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -63,6 +66,7 @@ class Campaign(Base):
     conversions = Column(Integer, default=0)
     image_url = Column(String)
     product_ids = Column(Text)  # JSON string of product IDs
+    client_id = Column(String, nullable=True, index=True)  # Multi-tenant support
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -77,6 +81,7 @@ class Discount(Base):
     category = Column(String, nullable=True)
     product_id = Column(String, nullable=True)
     is_active = Column(Boolean, default=True)
+    client_id = Column(String, nullable=True, index=True)  # Multi-tenant support
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
 
@@ -89,6 +94,7 @@ class FlowProduct(Base):
     nombre = Column(String, index=True)
     precio = Column(Float)
     descripcion = Column(Text, nullable=True)
+    tenant_id = Column(String, nullable=False, index=True)  # Multi-tenant support
     created_at = Column(DateTime, default=datetime.utcnow)
 
 class FlowPedido(Base):
@@ -96,6 +102,7 @@ class FlowPedido(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     telefono = Column(String, index=True)
+    tenant_id = Column(String, nullable=False, index=True)  # Multi-tenant support
     total = Column(Float)
     estado = Column(String, default="pendiente_pago")  # pendiente_pago, pagado, cancelado
     token = Column(String, nullable=True)  # Token de Flow para verificar pago
@@ -115,8 +122,8 @@ class FlowSesion(Base):
     __tablename__ = "flow_sesiones"
     
     id = Column(Integer, primary_key=True, index=True)
-    telefono = Column(String, unique=True, index=True)
-    # client_id removed - now single tenant mode
+    telefono = Column(String, index=True)  # No longer unique globally - unique per tenant
+    tenant_id = Column(String, nullable=False, index=True)  # Multi-tenant support
     estado = Column(String, default="INITIAL")
     datos = Column(Text)  # JSON con datos de la sesión
     last_message_at = Column(DateTime, default=datetime.utcnow)  # Último mensaje del usuario

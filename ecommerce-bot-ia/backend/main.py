@@ -86,6 +86,9 @@ app.add_middleware(
         "http://127.0.0.1:5173",
         "https://app.sintestesia.cl",  # Production frontend
         "https://sintestesia.cl",      # Main domain
+        "https://acme.sintestesia.cl", # ACME tenant frontend
+        "https://bravo.sintestesia.cl", # Bravo tenant frontend
+        "https://*.sintestesia.cl",    # Wildcard for all subdomains
     ],
     allow_credentials=True,  # Enable credentials for JWT tokens
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
@@ -109,7 +112,9 @@ app.include_router(campaigns_router, prefix="/api", tags=["campaigns"])
 app.include_router(discounts_router, prefix="/api", tags=["discounts"])
 app.include_router(dashboard.router, prefix="/api", tags=["dashboard"])
 app.include_router(assistant.router, prefix="/api", tags=["assistant"])
-app.include_router(bot_router, prefix="/api", tags=["bot"])
+
+# Bot endpoints (no prefix for webhook access - tenant-aware)
+app.include_router(bot_router, tags=["bot"])
 
 # Twilio webhook routes (no prefix for direct webhook access)
 app.include_router(twilio_router, tags=["twilio"])
