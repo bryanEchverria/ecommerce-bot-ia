@@ -42,7 +42,7 @@ def validar_firma(params: dict) -> bool:
     print(f"➡️ [Flow] ¿Firma válida? {valido}")
     return valido
 
-def crear_orden_flow(order_id: str, monto: int, descripcion: str, db: Session) -> str:
+def crear_orden_flow(order_id: str, monto: int, descripcion: str, db: Session, tenant_id: str = None) -> str:
     """
     Crea una orden de pago en Flow y devuelve el link de pago
     Sistema simplificado sin multi-tenant
@@ -72,7 +72,10 @@ def crear_orden_flow(order_id: str, monto: int, descripcion: str, db: Session) -
             return "Error al generar link de pago"
 
         # Guardar token en la BD
-        pedido = db.query(FlowPedido).filter_by(id=order_id).first()
+        if tenant_id:
+            pedido = db.query(FlowPedido).filter_by(id=order_id, tenant_id=tenant_id).first()
+        else:
+            pedido = db.query(FlowPedido).filter_by(id=order_id).first()
         if pedido:
             pedido.token = token
             db.commit()
@@ -90,11 +93,14 @@ def crear_orden_flow(order_id: str, monto: int, descripcion: str, db: Session) -
         print("❌ [Flow] Error al generar link de pago")
         return "Error al generar link de pago"
 
-def verificar_pago_flow(order_id: str, db: Session) -> bool:
+def verificar_pago_flow(order_id: str, db: Session, tenant_id: str = None) -> bool:
     """
     Verifica en Flow si un pago fue realizado exitosamente usando el token
     """
-    pedido = db.query(FlowPedido).filter_by(id=order_id).first()
+    if tenant_id:
+        pedido = db.query(FlowPedido).filter_by(id=order_id, tenant_id=tenant_id).first()
+    else:
+        pedido = db.query(FlowPedido).filter_by(id=order_id).first()
     if not pedido or not pedido.token:
         print(f"⚠️ [Flow] No se encontró token para el pedido {order_id}")
         return False

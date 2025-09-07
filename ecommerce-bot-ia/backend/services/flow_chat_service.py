@@ -586,7 +586,7 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: s
             
             # Crear orden de pago en Flow
             descripcion = f"Pedido_{store_info['name']}_{pedido.id}"
-            url_pago = crear_orden_flow(str(pedido.id), int(total), descripcion, db)
+            url_pago = crear_orden_flow(str(pedido.id), int(total), descripcion, db, sesion.tenant_id)
             
             # Preparar resumen del pedido
             resumen_productos = "\n".join([f"{item['cantidad']} x {item['nombre']}" 

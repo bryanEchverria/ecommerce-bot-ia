@@ -54,9 +54,14 @@ def get_orders(
     """
     Obtener pedidos de Flow para single tenant (sin autenticación).
     """
-    # Solo obtener pedidos de Flow para simplificar
+    # Solo obtener pedidos de Flow para simplificar - filtrado por tenant
     from models import FlowPedido
-    flow_pedidos = db.query(FlowPedido).order_by(FlowPedido.created_at.desc()).offset(skip).limit(limit).all()
+    from tenant_middleware import get_tenant_id
+    tenant_id = get_tenant_id()
+    
+    flow_pedidos = db.query(FlowPedido).filter(
+        FlowPedido.tenant_id == tenant_id
+    ).order_by(FlowPedido.created_at.desc()).offset(skip).limit(limit).all()
     
     # Convertir a formato compatible con frontend
     orders_data = []

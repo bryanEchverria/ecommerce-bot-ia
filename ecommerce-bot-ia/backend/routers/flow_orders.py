@@ -24,11 +24,10 @@ async def get_flow_orders(
     Obtener lista de pedidos Flow para el backoffice
     """
     try:
-        query = db.query(FlowPedido)
+        from tenant_middleware import get_tenant_id
+        tenant_id = get_tenant_id()
         
-        # Filtrar por cliente si se especifica (skip para single tenant)
-        # if client_id:
-        #     query = query.filter(FlowPedido.client_id == client_id)
+        query = db.query(FlowPedido).filter(FlowPedido.tenant_id == tenant_id)
             
         # Filtrar por estado si se especifica
         if estado:
@@ -76,13 +75,25 @@ async def get_flow_stats(db: Session = Depends(get_db)):
     Estadísticas básicas de pedidos Flow
     """
     try:
-        total_pedidos = db.query(FlowPedido).count()
-        pedidos_pagados = db.query(FlowPedido).filter(FlowPedido.estado == "pagado").count()
-        pedidos_pendientes = db.query(FlowPedido).filter(FlowPedido.estado == "pendiente_pago").count()
+        from tenant_middleware import get_tenant_id
+        tenant_id = get_tenant_id()
+        
+        total_pedidos = db.query(FlowPedido).filter(FlowPedido.tenant_id == tenant_id).count()
+        pedidos_pagados = db.query(FlowPedido).filter(
+            FlowPedido.tenant_id == tenant_id,
+            FlowPedido.estado == "pagado"
+        ).count()
+        pedidos_pendientes = db.query(FlowPedido).filter(
+            FlowPedido.tenant_id == tenant_id,
+            FlowPedido.estado == "pendiente_pago"
+        ).count()
         
         # Calcular total vendido (solo pedidos pagados)
         from sqlalchemy import func
-        total_vendido = db.query(func.sum(FlowPedido.total)).filter(FlowPedido.estado == "pagado").scalar() or 0
+        total_vendido = db.query(func.sum(FlowPedido.total)).filter(
+            FlowPedido.tenant_id == tenant_id,
+            FlowPedido.estado == "pagado"
+        ).scalar() or 0
         
         return {
             "total_pedidos": total_pedidos,
@@ -102,7 +113,13 @@ async def get_flow_order(order_id: str, db: Session = Depends(get_db)):
     Obtener detalles de un pedido específico
     """
     try:
-        pedido = db.query(FlowPedido).filter(FlowPedido.id == order_id).first()
+        from tenant_middleware import get_tenant_id
+        tenant_id = get_tenant_id()
+        
+        pedido = db.query(FlowPedido).filter(
+            FlowPedido.id == order_id,
+            FlowPedido.tenant_id == tenant_id
+        ).first()
         
         if not pedido:
             raise HTTPException(status_code=404, detail="Pedido no encontrado")

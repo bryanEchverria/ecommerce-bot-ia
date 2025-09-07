@@ -80,17 +80,15 @@ async def fix_problematic_api_paths(request: Request, call_next):
 app.add_middleware(
     CORSMiddleware,
     allow_origins=[
-        "http://localhost:3000",  # Local development
+        "http://localhost:3000",  # Local development  
         "http://localhost:5173",  # Vite dev server
         "http://127.0.0.1:3000",
         "http://127.0.0.1:5173",
         "https://app.sintestesia.cl",  # Production frontend
         "https://sintestesia.cl",      # Main domain
-        "https://acme.sintestesia.cl", # ACME tenant frontend
-        "https://bravo.sintestesia.cl", # Bravo tenant frontend
-        "https://*.sintestesia.cl",    # Wildcard for all subdomains
     ],
-    allow_credentials=True,  # Enable credentials for JWT tokens
+    allow_origin_regex=r"https://([a-z0-9-]+)\.sintestesia\.cl$",  # Dynamic subdomains
+    allow_credentials=True,
     allow_methods=["GET", "POST", "PUT", "DELETE", "OPTIONS", "PATCH"],
     allow_headers=["*"],
     expose_headers=["*"],
