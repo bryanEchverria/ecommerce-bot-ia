@@ -128,7 +128,7 @@ const Dashboard: React.FC = () => {
             try {
                 setLoading(true);
                 console.log('Dashboard: Making fetch call to flow-orders...');
-                const response = await fetch('https://app.sintestesia.cl/api/flow-orders/');
+                const response = await fetch('/api/flow-orders/');
                 console.log('Dashboard: Response received:', response.status);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 const data = await response.json();

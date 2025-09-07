@@ -1,7 +1,9 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, Text, Index
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, Text, Index, LargeBinary, UniqueConstraint, func
+from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship
 from database import Base
 from datetime import datetime
+import uuid
 
 class Product(Base):
     __tablename__ = "products"
@@ -161,3 +163,20 @@ class WhatsAppSettings(Base):
     # Timestamps
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+class TwilioAccount(Base):
+    """Configuración de cuenta Twilio por tenant"""
+    __tablename__ = "twilio_accounts"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenant_clients.id", ondelete="CASCADE"), nullable=False)
+    account_sid = Column(String(64), nullable=False)
+    auth_token_enc = Column(LargeBinary(), nullable=False)  # Encrypted auth token
+    from_number = Column(String(32), nullable=True)  # WhatsApp number like 'whatsapp:+14155238886'
+    status = Column(String(16), nullable=False, default="active")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    __table_args__ = (
+        UniqueConstraint("tenant_id", name="ux_twilio_accounts_tenant"),
+    )

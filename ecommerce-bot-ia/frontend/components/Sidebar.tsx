@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useMatch, useNavigate } from 'react-router-dom';
-import { HomeIcon, PackageIcon, ShoppingCartIcon, ZapIcon, MegaphoneIcon, PercentIcon, UsersIcon, WhatsAppIcon } from './Icons';
+import { HomeIcon, PackageIcon, ShoppingCartIcon, ZapIcon, MegaphoneIcon, PercentIcon, UsersIcon, WhatsAppIcon, PhoneIcon } from './Icons';
 import { useTranslation } from 'react-i18next';
 
 const NavItem: React.FC<{ to: string; children: React.ReactNode; }> = ({ to, children }) => {
@@ -63,6 +63,10 @@ const Sidebar: React.FC = () => {
           <NavItem to="/whatsapp-settings">
             <WhatsAppIcon className="h-5 w-5 mr-4" />
             <span>{t('sidebar.whatsappSettings')}</span>
+          </NavItem>
+          <NavItem to="/twilio-settings">
+            <PhoneIcon className="h-5 w-5 mr-4" />
+            <span>Twilio</span>
           </NavItem>
         </nav>
       </div>

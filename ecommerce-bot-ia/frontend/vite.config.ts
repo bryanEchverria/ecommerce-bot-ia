@@ -14,6 +14,9 @@ export default defineConfig(({ mode }) => {
         alias: {
           '@': path.resolve(__dirname, '.'),
         }
+      },
+      preview: {
+        allowedHosts: ['acme.sintestesia.cl', 'bravo.sintestesia.cl', 'app.sintestesia.cl', 'sintestesia.cl']
       }
     };
 });

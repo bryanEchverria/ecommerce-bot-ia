@@ -1,15 +1,22 @@
-from fastapi import APIRouter, Request, Response, HTTPException
+from fastapi import APIRouter, Request, Response, HTTPException, Depends
 from fastapi.responses import PlainTextResponse
+from sqlalchemy.orm import Session
 import json
 import logging
-from typing import Dict, Any
+from typing import Dict, Any, Optional
 import hashlib
 import hmac
 import base64
 import os
+import uuid
 from urllib.parse import urlencode
 import httpx
 import asyncio
+
+from database import get_db
+from models import TwilioAccount
+from auth_models import TenantClient
+from crypto_utils import decrypt_token
 
 router = APIRouter()
 
@@ -17,10 +24,40 @@ router = APIRouter()
 logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger(__name__)
 
-# Twilio configuration from environment variables
-TWILIO_ACCOUNT_SID = os.getenv("TWILIO_ACCOUNT_SID")
-TWILIO_AUTH_TOKEN = os.getenv("TWILIO_AUTH_TOKEN")
-TWILIO_WHATSAPP_NUMBER = os.getenv("TWILIO_WHATSAPP_NUMBER")
+def get_tenant_twilio_config(db: Session, host: str) -> Optional[TwilioAccount]:
+    """
+    Obtiene la configuración Twilio del tenant basado en el host
+    """
+    try:
+        # Extract subdomain from host (e.g., "acme.sintestesia.cl" -> "acme")
+        if not host or '.' not in host:
+            logger.warning(f"Invalid host format: {host}")
+            return None
+            
+        subdomain = host.split('.')[0]
+        
+        # Find tenant by slug (subdomain)
+        tenant = db.query(TenantClient).filter(TenantClient.slug == subdomain).first()
+        if not tenant:
+            logger.warning(f"Tenant not found for subdomain: {subdomain}")
+            return None
+        
+        # Get Twilio configuration for this tenant
+        # Convert tenant.id (string) to UUID for the TwilioAccount query
+        tenant_uuid = uuid.UUID(tenant.id)
+        twilio_config = db.query(TwilioAccount).filter(
+            TwilioAccount.tenant_id == tenant_uuid
+        ).first()
+        
+        if not twilio_config:
+            logger.warning(f"Twilio config not found for tenant: {tenant.id}")
+            return None
+            
+        return twilio_config
+        
+    except Exception as e:
+        logger.error(f"Error getting tenant Twilio config: {e}")
+        return None
 
 def validate_twilio_request(request_url: str, post_params: Dict[str, Any], auth_token: str, signature: str) -> bool:
     """Validate that the request came from Twilio"""
@@ -43,26 +80,28 @@ def validate_twilio_request(request_url: str, post_params: Dict[str, Any], auth_
     
     return hmac.compare_digest(signature, expected_signature)
 
-async def send_whatsapp_message(to_number: str, message_text: str) -> bool:
+async def send_whatsapp_message_tenant(to_number: str, message_text: str, twilio_config: TwilioAccount) -> bool:
     """
-    Send WhatsApp message using Twilio API actively
+    Send WhatsApp message using Twilio API actively for specific tenant
     """
-    if not TWILIO_ACCOUNT_SID or not TWILIO_AUTH_TOKEN:
-        logger.error("Twilio credentials not configured")
+    try:
+        auth_token = decrypt_token(twilio_config.auth_token_enc)
+    except Exception as e:
+        logger.error(f"Error decrypting auth token: {e}")
         return False
     
     try:
         async with httpx.AsyncClient() as client:
-            auth = (TWILIO_ACCOUNT_SID, TWILIO_AUTH_TOKEN)
+            auth = (twilio_config.account_sid, auth_token)
             
             data = {
                 'To': f'whatsapp:{to_number}',
-                'From': 'whatsapp:+14155238886',  # Tu número de Twilio
+                'From': twilio_config.from_number,
                 'Body': message_text
             }
             
             response = await client.post(
-                f'https://api.twilio.com/2010-04-01/Accounts/{TWILIO_ACCOUNT_SID}/Messages.json',
+                f'https://api.twilio.com/2010-04-01/Accounts/{twilio_config.account_sid}/Messages.json',
                 auth=auth,
                 data=data
             )
@@ -78,11 +117,11 @@ async def send_whatsapp_message(to_number: str, message_text: str) -> bool:
         logger.error(f"Error sending message: {str(e)}")
         return False
 
-@router.post("/twilio/webhook")
-async def twilio_webhook(request: Request):
+@router.post("/bot/twilio/webhook")
+async def twilio_webhook_multi_tenant(request: Request, db: Session = Depends(get_db)):
     """
-    Endpoint para recibir mensajes de WhatsApp desde Twilio
-    URL para configurar en Twilio: https://webhook.sintestesia.cl/twilio/webhook
+    Endpoint multi-tenant para recibir mensajes de WhatsApp desde Twilio
+    URL para configurar en Twilio: https://<slug>.sintestesia.cl/bot/twilio/webhook
     """
     try:
         # Get the raw body and form data
@@ -92,26 +131,40 @@ async def twilio_webhook(request: Request):
         # Convert form data to dict
         message_data = dict(form_data)
         
-        # Log the incoming message
-        logger.info(f"Received Twilio webhook: {message_data}")
+        # Get host from request
+        host = request.headers.get('host', '')
+        logger.info(f"Received Twilio webhook for host: {host}")
         
-        # Temporarily disable signature validation for debugging
-        # TODO: Fix signature validation logic
+        # Get tenant's Twilio configuration
+        twilio_config = get_tenant_twilio_config(db, host)
+        if not twilio_config:
+            logger.error(f"Twilio configuration not found for host: {host}")
+            return PlainTextResponse(content="", status_code=404)
+        
+        # Decrypt auth token for signature validation
+        try:
+            auth_token = decrypt_token(twilio_config.auth_token_enc)
+        except Exception as e:
+            logger.error(f"Error decrypting auth token: {e}")
+            return PlainTextResponse(content="", status_code=500)
+        
+        # Validate Twilio signature for security
         signature = request.headers.get('X-Twilio-Signature', '')
-        logger.info(f"Twilio signature received: {signature}")
-        logger.info(f"Request URL: {str(request.url)}")
+        if signature and auth_token:
+            is_valid = validate_twilio_request(
+                str(request.url),
+                message_data,
+                auth_token,
+                signature
+            )
+            if not is_valid:
+                logger.error("Invalid Twilio signature")
+                return PlainTextResponse(content="", status_code=403)
+        else:
+            logger.warning("No signature validation performed (missing signature or auth token)")
         
-        # Skip validation for now
-        # if TWILIO_AUTH_TOKEN and signature:
-        #     is_valid = validate_twilio_request(
-        #         str(request.url),
-        #         message_data,
-        #         TWILIO_AUTH_TOKEN,
-        #         signature
-        #     )
-        #     if not is_valid:
-        #         logger.error("Invalid Twilio signature")
-        #         raise HTTPException(status_code=403, detail="Invalid signature")
+        # Log the incoming message (without sensitive data)
+        logger.info(f"Twilio webhook - Host: {host}, From: {message_data.get('From', '')}, Body: {message_data.get('Body', '')[:50]}...")
         
         # Extract message information
         from_number = message_data.get('From', '')
@@ -125,17 +178,11 @@ async def twilio_webhook(request: Request):
             phone_number = from_number.replace('whatsapp:', '').strip()
             if not phone_number.startswith('+'):
                 phone_number = '+' + phone_number
-            logger.info(f"WhatsApp message from {phone_number}: {message_body}")
+                
+            # Get tenant ID from the Twilio config
+            tenant_id = str(twilio_config.tenant_id)
             
-            # Here you can integrate with your existing bot logic
-            # For now, we'll just log and respond with a simple message
-            
-            # You can integrate this with your existing bot logic in routers/bot.py
-            # by calling the appropriate functions based on the message content
-            
-            # Use TwiML response (doesn't consume daily limit in sandbox)
-            # For Twilio, we'll use ACME Corporation as the default tenant
-            tenant_id = "0c063a0b-a773-46d7-a8d3-8bec58aaa5ef"  # ACME Corporation
+            # Process message with the tenant's context
             response_message = await process_whatsapp_message(phone_number, message_body, message_sid, tenant_id)
             
             return PlainTextResponse(
@@ -252,24 +299,32 @@ async def twilio_status_callback(request: Request):
         return {"status": "error", "message": str(e)}
 
 @router.get("/twilio/test")
-async def test_twilio_integration():
+async def test_twilio_integration(request: Request, db: Session = Depends(get_db)):
     """
-    Endpoint de prueba para verificar que la integración está funcionando
+    Endpoint de prueba para verificar que la integración multi-tenant está funcionando
     """
     try:
+        host = request.headers.get('host', '')
+        twilio_config = get_tenant_twilio_config(db, host)
+        
+        if not twilio_config:
+            return {
+                "status": "error",
+                "message": f"No Twilio configuration found for host: {host}",
+                "host": host
+            }
+        
         return {
             "status": "active",
-            "message": "Twilio integration is working",
-            "webhook_url": "https://webhook.sintestesia.cl/twilio/webhook",
-            "status_callback_url": "https://webhook.sintestesia.cl/twilio/status",
-            "configured_number": TWILIO_WHATSAPP_NUMBER,
-            "account_sid": TWILIO_ACCOUNT_SID[:8] + "..." if TWILIO_ACCOUNT_SID else None,
-            "auth_token_configured": bool(TWILIO_AUTH_TOKEN),
-            "environment_check": {
-                "TWILIO_ACCOUNT_SID": TWILIO_ACCOUNT_SID is not None,
-                "TWILIO_AUTH_TOKEN": TWILIO_AUTH_TOKEN is not None,
-                "TWILIO_WHATSAPP_NUMBER": TWILIO_WHATSAPP_NUMBER is not None
-            }
+            "message": "Twilio multi-tenant integration is working",
+            "host": host,
+            "webhook_url": f"https://{host}/bot/twilio/webhook",
+            "status_callback_url": f"https://{host}/twilio/status",
+            "tenant_id": str(twilio_config.tenant_id),
+            "account_sid": twilio_config.account_sid[:8] + "..." if twilio_config.account_sid else None,
+            "from_number": twilio_config.from_number,
+            "auth_token_configured": bool(twilio_config.auth_token_enc),
+            "status": twilio_config.status
         }
     except Exception as e:
         logger.error(f"Error in Twilio test endpoint: {str(e)}")

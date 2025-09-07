@@ -315,6 +315,31 @@ export const tenantDiscountsApi = {
     }),
 };
 
+// Tenant-aware Twilio API
+export const tenantTwilioApi = {
+  getConfig: () => tenantApiRequest<any>('/integrations/twilio/config'),
+  
+  upsertConfig: (config: any) =>
+    tenantApiRequest<any>('/integrations/twilio/config', {
+      method: 'POST',
+      body: JSON.stringify(config),
+    }),
+  
+  // Alias for compatibility
+  setConfig: (config: any) =>
+    tenantApiRequest<any>('/integrations/twilio/config', {
+      method: 'POST',
+      body: JSON.stringify(config),
+    }),
+  
+  getWebhookUrl: () => tenantApiRequest<any>('/integrations/twilio/webhook-url'),
+  
+  deleteConfig: () =>
+    tenantApiRequest<any>('/integrations/twilio/config', {
+      method: 'DELETE',
+    }),
+};
+
 // Export for backward compatibility (gradual migration)
 export const ordersApi = tenantOrdersApi;
 export const dashboardApi = tenantDashboardApi;

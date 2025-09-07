@@ -12,6 +12,7 @@ from routers.twilio_webhook import router as twilio_router
 from routers.flow_router import router as flow_router
 from routers.flow_orders import router as flow_orders_router
 from routers.whatsapp_settings import router as whatsapp_settings_router
+from routers.twilio_integration import router as twilio_integration_router
 from routers.debug import router as debug_router
 from tenant_middleware import TenantMiddleware
 
@@ -125,6 +126,9 @@ app.include_router(flow_orders_router, prefix="/api", tags=["flow-orders"])
 
 # WhatsApp settings management endpoints
 app.include_router(whatsapp_settings_router, prefix="/api", tags=["whatsapp-settings"])
+
+# Twilio integration endpoints
+app.include_router(twilio_integration_router, prefix="/api", tags=["twilio-integration"])
 
 # Debug endpoints (only for development/testing)
 app.include_router(debug_router, tags=["debug"])
