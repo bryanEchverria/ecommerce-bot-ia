@@ -74,3 +74,6 @@ venv/
 # Alembic
 alembic/versions/*.py
 !alembic/versions/f1c8a481350d_add_multi_tenant_auth_tables.py
+
+# Docker PostgreSQL data
+postgres-data/
