@@ -7,14 +7,14 @@ services:
     container_name: ecommerce-postgres
     restart: unless-stopped
     environment:
-      POSTGRES_DB: ${POSTGRES_DB:-ecommerce}
-      POSTGRES_USER: ${POSTGRES_USER:-postgres}
-      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD:-postgres}
+      POSTGRES_DB: ecommerce_multi_tenant
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: your-secure-password-here
     volumes:
-      - postgres_data:/var/lib/postgresql/data
-      - ./backend/init.sql:/docker-entrypoint-initdb.d/init.sql:ro
+      - ./postgres-data:/var/lib/postgresql/data
+      - ./postgres-init:/docker-entrypoint-initdb.d
     ports:
-      - "5433:5432"
+      - "5432:5432"
     healthcheck:
       test: ["CMD-SHELL", "pg_isready -U ${POSTGRES_USER:-postgres}"]
       interval: 10s
@@ -31,7 +31,7 @@ services:
     container_name: ecommerce-backend
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-ecommerce}
+      DATABASE_URL: postgresql://ecommerce_user:ecommerce123@postgres:5432/ecommerce_multi_tenant
       SECRET_KEY: ${SECRET_KEY:-your-secret-key-change-in-production}
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       GEMINI_API_KEY: ${GEMINI_API_KEY}
@@ -52,11 +52,12 @@ services:
     depends_on:
       postgres:
         condition: service_healthy
-    # healthcheck:
-      # test: ["CMD", "curl", "-f", "http://localhost:8002/health"]
-      # interval: 30s
-      # timeout: 10s
-      # retries: 3
+    healthcheck:
+      test: ["CMD-SHELL", "python3 -c 'import urllib.request; urllib.request.urlopen(\"http://localhost:8002/health\", timeout=2)' || exit 1"]
+      interval: 15s
+      timeout: 3s
+      retries: 5
+      start_period: 10s
     networks:
       - ecommerce-network
 
