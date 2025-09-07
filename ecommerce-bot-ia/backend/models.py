@@ -1,4 +1,4 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, Text
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, Text, Index
 from sqlalchemy.orm import relationship
 from database import Base
 from datetime import datetime
@@ -122,7 +122,7 @@ class FlowSesion(Base):
     __tablename__ = "flow_sesiones"
     
     id = Column(Integer, primary_key=True, index=True)
-    telefono = Column(String, index=True)  # No longer unique globally - unique per tenant
+    telefono = Column(String, index=False)  # No index on telefono alone - only composite
     tenant_id = Column(String, nullable=False, index=True)  # Multi-tenant support
     estado = Column(String, default="INITIAL")
     datos = Column(Text)  # JSON con datos de la sesión
@@ -131,6 +131,12 @@ class FlowSesion(Base):
     conversation_active = Column(Boolean, default=True)  # Si la conversación está activa
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    # Define composite unique index at table level
+    __table_args__ = (
+        # Unique constraint on tenant_id + telefono combination
+        Index('ux_flow_sesiones_tenant_phone', 'tenant_id', 'telefono', unique=True),
+    )
 
 class WhatsAppSettings(Base):
     """Configuración global de canal WhatsApp (single tenant)"""

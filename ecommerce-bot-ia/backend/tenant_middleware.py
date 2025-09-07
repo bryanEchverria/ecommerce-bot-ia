@@ -137,6 +137,24 @@ class TenantMiddleware(BaseHTTPMiddleware):
                 if tenant_id:
                     return tenant_id
         
+        # Fallback SEGURO: solo permitir client_slug cuando el host NO es un subdominio tenant
+        # (ej. app.sintestesia.cl, sintestesia.cl, localhost/dev). Evita spoofing entre tenants.
+        import re
+        host = (request.headers.get("host") or "").lower()
+        allowed_fallback_hosts = {
+            "app.sintestesia.cl", "sintestesia.cl",
+            "127.0.0.1:8002", "localhost:8002", "localhost:8000", "127.0.0.1:8000"
+        }
+        # si ya había subdominio válido, no usar fallback
+        sub = self._extract_subdomain(host) if host else None
+        is_tenant_subdomain = bool(sub and sub not in {"app", "www"})
+        if (not is_tenant_subdomain) and (host in allowed_fallback_hosts):
+            slug = request.query_params.get("client_slug") or request.headers.get("X-Client-Slug")
+            if slug and re.fullmatch(r"[a-z0-9-]{1,63}", slug):
+                tenant_id = await self._resolve_subdomain_to_tenant_id(slug.strip())
+                if tenant_id:
+                    return tenant_id
+        
         return None
 
     def _extract_subdomain(self, host: str) -> Optional[str]:
