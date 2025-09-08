@@ -78,10 +78,10 @@ const Orders: React.FC = () => {
                 
                 // Transform tenant API data to match frontend types
                 const transformedOrders = ordersData.map(o => ({
-                    id: o.id,
+                    id: String(o.id), // Ensure ID is string
                     orderNumber: o.code, // tenant API uses 'code' instead of 'order_number'
                     customerName: o.customer_name,
-                    date: o.created_at || o.date, // tenant API uses 'created_at' instead of 'date'
+                    date: o.created_at || o.updated_at || new Date().toISOString(), // Use updated_at or current date as fallback
                     items: o.items || 1, // default to 1 if not present
                     status: o.status,
                     total: typeof o.total === 'string' ? parseFloat(o.total) : o.total // tenant API sends total as string
@@ -165,9 +165,9 @@ const Orders: React.FC = () => {
 
         return orders.filter(order => {
             const matchesSearch =
-                order.id.toLowerCase().includes(searchTerm.toLowerCase()) ||
-                (order.orderNumber && order.orderNumber.toLowerCase().includes(searchTerm.toLowerCase())) ||
-                order.customerName.toLowerCase().includes(searchTerm.toLowerCase());
+                String(order.id).toLowerCase().includes(searchTerm.toLowerCase()) ||
+                (order.orderNumber && String(order.orderNumber).toLowerCase().includes(searchTerm.toLowerCase())) ||
+                String(order.customerName).toLowerCase().includes(searchTerm.toLowerCase());
 
             const matchesStatus = statusFilter === 'All' || order.status === statusFilter;
 

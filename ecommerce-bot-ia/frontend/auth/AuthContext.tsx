@@ -38,7 +38,7 @@ const AuthContext = createContext<AuthContextType | undefined>(undefined);
 // Constants - Use relative URLs in production for multi-tenant support
 const BASE_URL = process.env.NODE_ENV === 'production' 
   ? '' 
-  : 'http://127.0.0.1:8001';
+  : 'http://127.0.0.1:8002';
 const TOKEN_REFRESH_THRESHOLD = 60 * 1000; // 60 seconds
 
 // Local Storage Keys

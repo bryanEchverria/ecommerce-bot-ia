@@ -3,12 +3,25 @@ import { useAuth } from '../auth/AuthContext';
 import { useTheme } from './ThemeContext';
 
 const Login: React.FC = () => {
+  // Auto-detect client slug from subdomain
+  const detectClientSlug = (): string => {
+    if (typeof window !== 'undefined') {
+      const hostname = window.location.hostname;
+      const parts = hostname.split('.');
+      // If subdomain exists and isn't 'app' or 'www', use it as client slug
+      if (parts.length >= 2 && parts[0] !== 'app' && parts[0] !== 'www' && parts[0] !== 'localhost') {
+        return parts[0];
+      }
+    }
+    return '';
+  };
+
   const [isLogin, setIsLogin] = useState(true);
   const [formData, setFormData] = useState({
     email: '',
     password: '',
     clientName: '',
-    clientSlug: '',
+    clientSlug: detectClientSlug(),
   });
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState('');
@@ -132,10 +145,13 @@ const Login: React.FC = () => {
                 placeholder="mi-empresa"
               />
               <p className="mt-1 text-xs text-on-surface-secondary-light dark:text-on-surface-secondary-dark">
-                {isLogin 
-                  ? 'Si tienes multiples empresas, especifica cual usar'
-                  : 'Si ya existe la empresa, usala en vez de crear una nueva'
-                }
+                {formData.clientSlug ? (
+                  <span className="text-green-600 dark:text-green-400">✓ Detectado automáticamente: {formData.clientSlug}</span>
+                ) : (
+                  isLogin 
+                    ? 'Si tienes multiples empresas, especifica cual usar'
+                    : 'Si ya existe la empresa, usala en vez de crear una nueva'
+                )}
               </p>
             </div>
 

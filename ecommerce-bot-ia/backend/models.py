@@ -169,7 +169,7 @@ class TwilioAccount(Base):
     __tablename__ = "twilio_accounts"
     
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    tenant_id = Column(UUID(as_uuid=True), ForeignKey("tenant_clients.id", ondelete="CASCADE"), nullable=False)
+    tenant_id = Column(String, ForeignKey("tenant_clients.id", ondelete="CASCADE"), nullable=False)
     account_sid = Column(String(64), nullable=False)
     auth_token_enc = Column(LargeBinary(), nullable=False)  # Encrypted auth token
     from_number = Column(String(32), nullable=True)  # WhatsApp number like 'whatsapp:+14155238886'

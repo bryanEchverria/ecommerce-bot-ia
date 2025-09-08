@@ -26,6 +26,7 @@ const TwilioSettings: React.FC = () => {
   const [saving, setSaving] = useState(false);
   const [config, setConfig] = useState<TwilioConfig | null>(null);
   const [webhookUrl, setWebhookUrl] = useState<string>('');
+  const [webhookError, setWebhookError] = useState<boolean>(false);
   
   // Form state
   const [accountSid, setAccountSid] = useState('');
@@ -60,8 +61,11 @@ const TwilioSettings: React.FC = () => {
     try {
       const data = await tenantTwilioApi.getWebhookUrl();
       setWebhookUrl(data.webhook_url);
+      setWebhookError(false);
     } catch (error) {
       console.error('Error loading webhook URL:', error);
+      setWebhookUrl('');
+      setWebhookError(true);
     }
   };
 
@@ -102,7 +106,7 @@ const TwilioSettings: React.FC = () => {
     
     try {
       await navigator.clipboard.writeText(webhookUrl);
-      showToast('URL de webhook copiada al portapapeles', 'success');
+      showToast('Copiado', 'success');
     } catch (error) {
       console.error('Error copying to clipboard:', error);
       showToast('Error copiando al portapapeles', 'error');
@@ -190,44 +194,6 @@ const TwilioSettings: React.FC = () => {
         </div>
       )}
 
-      {/* Webhook URL */}
-      {webhookUrl && (
-        <div className="bg-blue-50 dark:bg-blue-900/20 p-4 rounded-lg border border-blue-200 dark:border-blue-700">
-          <h3 className="font-semibold text-blue-800 dark:text-blue-200 mb-2">
-            URL de Webhook para Twilio
-          </h3>
-          <div className="flex items-center gap-2">
-            <code className="flex-1 px-3 py-2 bg-white dark:bg-gray-800 border border-blue-200 dark:border-blue-600 rounded text-sm font-mono text-blue-900 dark:text-blue-100">
-              {webhookUrl}
-            </code>
-            <button
-              onClick={copyWebhookUrl}
-              className="flex items-center px-3 py-2 bg-blue-600 text-white rounded hover:bg-blue-700"
-              title="Copiar URL"
-            >
-              <CopyIcon className="h-4 w-4" />
-            </button>
-            <button
-              onClick={() => {
-                const slug = webhookUrl.split('.')[0].replace('https://', '');
-                window.open(`https://${slug}.sintestesia.cl/twilio/test`, '_blank');
-              }}
-              className="flex items-center px-3 py-2 bg-green-600 text-white rounded hover:bg-green-700"
-              title="Probar Webhook"
-            >
-              <PhoneIcon className="h-4 w-4" />
-            </button>
-          </div>
-          <p className="text-xs text-blue-600 dark:text-blue-300 mt-2">
-            Configure esta URL como webhook en su cuenta de Twilio para recibir mensajes de WhatsApp
-          </p>
-          <div className="text-xs text-blue-500 dark:text-blue-400 mt-2 space-y-1">
-            <div><strong>Instrucciones:</strong></div>
-            <div>1. Twilio Console → Messaging → Sandbox/WhatsApp → "When a message comes in" (POST)</div>
-            <div>2. Status callback (opcional): https://{webhookUrl.split('.')[0].replace('https://', '')}.sintestesia.cl/twilio/status</div>
-          </div>
-        </div>
-      )}
 
       {/* Configuration Form */}
       <div className="bg-secondary-light dark:bg-secondary-dark p-6 rounded-lg border border-outline-light dark:border-outline-dark">
@@ -279,6 +245,45 @@ const TwilioSettings: React.FC = () => {
             <p className="text-xs text-on-surface-secondary-light dark:text-on-surface-secondary-dark mt-1">
               Número de WhatsApp proporcionado por Twilio (formato: whatsapp:+número)
             </p>
+          </div>
+
+          {/* Webhook URL Field */}
+          <div>
+            <label className="block text-sm font-medium text-on-surface-light dark:text-on-surface-dark mb-1">
+              Webhook URL
+            </label>
+            <div className="flex items-center gap-2">
+              <input
+                type="text"
+                value={webhookUrl || ''}
+                readOnly
+                placeholder="Cargando URL del webhook..."
+                className="flex-1 px-3 py-2 border border-outline-light dark:border-outline-dark rounded-md bg-gray-50 dark:bg-gray-800 text-on-surface-light dark:text-on-surface-dark font-mono text-sm cursor-default"
+              />
+              <button
+                onClick={copyWebhookUrl}
+                disabled={!webhookUrl}
+                className="px-3 py-2 bg-primary text-white rounded-md hover:bg-primary/80 disabled:opacity-50 disabled:cursor-not-allowed text-sm font-medium"
+                title="Copiar enlace"
+              >
+                Copiar
+              </button>
+              {webhookUrl && (
+                <a
+                  href={webhookUrl}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="text-sm text-primary hover:text-primary/80 underline"
+                >
+                  Abrir
+                </a>
+              )}
+            </div>
+            {webhookError && (
+              <p className="text-xs text-red-500 mt-1">
+                Error cargando la URL del webhook
+              </p>
+            )}
           </div>
         </div>
 

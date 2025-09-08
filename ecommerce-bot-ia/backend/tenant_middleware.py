@@ -178,6 +178,15 @@ class TenantMiddleware(BaseHTTPMiddleware):
             # Remove port if present
             host_clean = host.split(':')[0]
             
+            # Skip IP addresses (like 127.0.0.1, 192.168.1.1, etc.)
+            import re
+            if re.match(r'^\d+\.\d+\.\d+\.\d+$', host_clean):
+                return None
+            
+            # Skip localhost
+            if host_clean.lower() == 'localhost':
+                return None
+            
             # Split by dots
             parts = host_clean.split('.')
             

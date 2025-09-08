@@ -16,8 +16,8 @@ function getApiBaseUrl(): string {
     // This allows each subdomain to proxy to the same backend with different tenant context
     return '';
   }
-  // In development, use localhost with port 8001
-  return 'http://127.0.0.1:8001';
+  // In development, use localhost with port 8002
+  return 'http://127.0.0.1:8002';
 }
 
 const API_BASE_URL = getApiBaseUrl();
@@ -44,16 +44,44 @@ function getAuthToken(): string | null {
   return null;
 }
 
+// Get client slug from localStorage for tenant resolution
+function getClientSlug(): string | null {
+  // Try new format first (AuthContext)
+  const client = localStorage.getItem('auth_client');
+  if (client) {
+    try {
+      const parsed = JSON.parse(client);
+      return parsed.slug;
+    } catch {
+      return null;
+    }
+  }
+  
+  // Fallback to old format for compatibility
+  const authState = localStorage.getItem('authState');
+  if (authState) {
+    try {
+      const parsed = JSON.parse(authState);
+      return parsed.client?.slug || null;
+    } catch {
+      return null;
+    }
+  }
+  return null;
+}
+
 // Generic API request function with JWT authentication
 async function tenantApiRequest<T>(endpoint: string, options?: RequestInit): Promise<T> {
   const url = `${API_BASE_URL}/api${endpoint}`;
   const token = getAuthToken();
+  const clientSlug = getClientSlug();
   
   const config: RequestInit = {
     mode: 'cors',
     headers: {
       'Content-Type': 'application/json',
       ...(token && { 'Authorization': `Bearer ${token}` }),
+      ...(clientSlug && { 'X-Client-Slug': clientSlug }),
       ...options?.headers,
     },
     ...options,

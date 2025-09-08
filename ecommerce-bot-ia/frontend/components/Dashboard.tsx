@@ -137,10 +137,10 @@ const Dashboard: React.FC = () => {
                 
                 // Transform data exactly like Orders component
                 const transformedOrders = ordersData.map(o => ({
-                    id: o.id,
+                    id: String(o.id), // Ensure ID is string
                     orderNumber: o.code,
                     customerName: o.customer_name,
-                    date: o.created_at || o.date,
+                    date: o.created_at || o.updated_at || new Date().toISOString(), // Use updated_at or current date as fallback
                     items: o.items || 1,
                     status: o.status,
                     total: typeof o.total === 'string' ? parseFloat(o.total) : o.total

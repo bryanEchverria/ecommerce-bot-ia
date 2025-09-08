@@ -27,9 +27,8 @@ def _get_tenant_slug(db: Session, tenant_id_str: str) -> Optional[str]:
 async def get_twilio_config(db: Session = Depends(get_db)):
     """Obtener configuración Twilio del tenant actual"""
     tenant_id_str = get_tenant_id()
-    tenant_id = uuid.UUID(tenant_id_str)
     
-    tw = db.query(TwilioAccount).filter(TwilioAccount.tenant_id == tenant_id).one_or_none()
+    tw = db.query(TwilioAccount).filter(TwilioAccount.tenant_id == tenant_id_str).one_or_none()
     
     tenant_slug = _get_tenant_slug(db, tenant_id_str)
     if not tenant_slug:
@@ -55,13 +54,12 @@ async def upsert_twilio_config(
 ):
     """Crear/actualizar configuración Twilio del tenant actual"""
     tenant_id_str = get_tenant_id()
-    tenant_id = uuid.UUID(tenant_id_str)
     
     tenant_slug = _get_tenant_slug(db, tenant_id_str)
     if not tenant_slug:
         raise HTTPException(status_code=404, detail="Tenant slug not found")
     
-    tw = db.query(TwilioAccount).filter(TwilioAccount.tenant_id == tenant_id).one_or_none()
+    tw = db.query(TwilioAccount).filter(TwilioAccount.tenant_id == tenant_id_str).one_or_none()
     
     # Encrypt auth token
     encrypted_token = encrypt_token(payload.auth_token.get_secret_value())
@@ -69,7 +67,7 @@ async def upsert_twilio_config(
     if not tw:
         # Create new
         tw = TwilioAccount(
-            tenant_id=tenant_id,
+            tenant_id=tenant_id_str,
             account_sid=payload.account_sid,
             auth_token_enc=encrypted_token,
             from_number=payload.from_number,
@@ -118,10 +116,9 @@ async def get_webhook_url(db: Session = Depends(get_db)):
 async def delete_twilio_config(db: Session = Depends(get_db)):
     """Eliminar configuración Twilio del tenant actual"""
     tenant_id_str = get_tenant_id()
-    tenant_id = uuid.UUID(tenant_id_str)
     
     twilio_account = db.query(TwilioAccount).filter(
-        TwilioAccount.tenant_id == tenant_id
+        TwilioAccount.tenant_id == tenant_id_str
     ).first()
     
     if not twilio_account:
