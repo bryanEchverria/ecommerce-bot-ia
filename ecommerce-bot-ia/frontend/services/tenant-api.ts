@@ -368,6 +368,31 @@ export const tenantTwilioApi = {
     }),
 };
 
+// Tenant-aware Flow API
+export const tenantFlowApi = {
+  getConfig: () => tenantApiRequest<any>('/integrations/flow/config'),
+  
+  upsertConfig: (config: any) =>
+    tenantApiRequest<any>('/integrations/flow/config', {
+      method: 'POST',
+      body: JSON.stringify(config),
+    }),
+  
+  getWebhookUrls: () => tenantApiRequest<any>('/integrations/flow/webhook-urls'),
+  
+  deleteConfig: () =>
+    tenantApiRequest<any>('/integrations/flow/config', {
+      method: 'DELETE',
+    }),
+};
+
+// Tenant-aware Payment Methods API (combined)
+export const tenantPaymentMethodsApi = {
+  getConfig: () => tenantApiRequest<any>('/payment-methods/config'),
+  
+  getStatus: () => tenantApiRequest<any>('/payment-methods/status'),
+};
+
 // Export for backward compatibility (gradual migration)
 export const ordersApi = tenantOrdersApi;
 export const dashboardApi = tenantDashboardApi;

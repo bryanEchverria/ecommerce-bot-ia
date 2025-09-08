@@ -10,6 +10,7 @@ import Discounts from './components/Discounts';
 import Clients from './components/Clients';
 import WhatsAppSettings from './components/WhatsAppSettings';
 import TwilioSettings from './components/TwilioSettings';
+import PaymentMethods from './components/PaymentMethods';
 import Login from './components/Login';
 import ProtectedRoute from './components/ProtectedRoute';
 import { CurrencyProvider } from './components/CurrencyContext';
@@ -52,6 +53,7 @@ const AppContent: React.FC = () => {
               <Route path="/discounts" element={<ProtectedRoute><Discounts /></ProtectedRoute>} />
               <Route path="/whatsapp-settings" element={<ProtectedRoute><WhatsAppSettings /></ProtectedRoute>} />
               <Route path="/twilio-settings" element={<ProtectedRoute><TwilioSettings /></ProtectedRoute>} />
+              <Route path="/payment-methods" element={<ProtectedRoute><PaymentMethods /></ProtectedRoute>} />
             </Routes>
           </div>
         </main>

@@ -180,3 +180,21 @@ class TwilioAccount(Base):
     __table_args__ = (
         UniqueConstraint("tenant_id", name="ux_twilio_accounts_tenant"),
     )
+
+class FlowAccount(Base):
+    """Configuración de cuenta Flow por tenant"""
+    __tablename__ = "flow_accounts"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    tenant_id = Column(String, ForeignKey("tenant_clients.id", ondelete="CASCADE"), nullable=False)
+    api_key = Column(String(64), nullable=False)  # Flow API Key
+    secret_key_enc = Column(LargeBinary(), nullable=False)  # Encrypted Flow Secret Key
+    base_url = Column(String(128), nullable=False, default="https://sandbox.flow.cl/api")  # sandbox or production
+    webhook_base_url = Column(String(128), nullable=True)  # For custom webhook URLs
+    status = Column(String(16), nullable=False, default="active")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+    
+    __table_args__ = (
+        UniqueConstraint("tenant_id", name="ux_flow_accounts_tenant"),
+    )
