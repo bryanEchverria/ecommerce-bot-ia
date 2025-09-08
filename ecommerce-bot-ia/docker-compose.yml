@@ -69,7 +69,7 @@ services:
     container_name: ecommerce-whatsapp-bot
     restart: unless-stopped
     environment:
-      DATABASE_URL: postgresql://${POSTGRES_USER:-postgres}:${POSTGRES_PASSWORD:-postgres}@postgres:5432/${POSTGRES_DB:-ecommerce}
+      DATABASE_URL: postgresql://ecommerce_user:ecommerce123@postgres:5432/ecommerce_multi_tenant
       OPENAI_API_KEY: ${OPENAI_API_KEY}
       BACKEND_URL: http://backend:8002
       FLOW_API_KEY: ${FLOW_API_KEY}
@@ -114,7 +114,7 @@ services:
       VITE_API_URL: ${VITE_API_URL:-https://api.sintestesia.cl}
       VITE_GEMINI_API_KEY: ${VITE_GEMINI_API_KEY}
     ports:
-      - "8080:80"
+      - "8081:80"
     depends_on:
       - backend
     healthcheck:

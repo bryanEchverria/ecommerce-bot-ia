@@ -16,6 +16,7 @@ from routers.twilio_integration import router as twilio_integration_router
 from routers.flow_integration import router as flow_integration_router
 from routers.payment_methods import router as payment_methods_router
 from routers.debug import router as debug_router
+from routers.admin import router as admin_router
 from tenant_middleware import TenantMiddleware
 
 app = FastAPI(
@@ -139,6 +140,7 @@ app.include_router(flow_integration_router, prefix="/api", tags=["flow-integrati
 app.include_router(payment_methods_router, prefix="/api", tags=["payment-methods"])
 
 # Debug endpoints (only for development/testing)
+app.include_router(admin_router, prefix="/api", tags=["admin"])
 app.include_router(debug_router, tags=["debug"])
 
 @app.get("/")

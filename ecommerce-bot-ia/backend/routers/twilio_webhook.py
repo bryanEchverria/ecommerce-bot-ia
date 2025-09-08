@@ -43,10 +43,9 @@ def get_tenant_twilio_config(db: Session, host: str) -> Optional[TwilioAccount]:
             return None
         
         # Get Twilio configuration for this tenant
-        # Convert tenant.id (string) to UUID for the TwilioAccount query
-        tenant_uuid = uuid.UUID(tenant.id)
+        # TwilioAccount.tenant_id is String, not UUID
         twilio_config = db.query(TwilioAccount).filter(
-            TwilioAccount.tenant_id == tenant_uuid
+            TwilioAccount.tenant_id == tenant.id
         ).first()
         
         if not twilio_config:
