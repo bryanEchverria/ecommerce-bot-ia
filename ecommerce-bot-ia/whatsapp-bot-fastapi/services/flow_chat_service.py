@@ -102,7 +102,7 @@ def obtener_productos_cliente_real(db: Session, telefono: str):
     
     return productos, tenant_id, tenant_info
 
-def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
+def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: str = None) -> str:
     """
     Procesa mensajes con lógica de Flow integrada
     Multi-tenant compatible - consulta productos reales del backoffice
@@ -169,8 +169,12 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
         guardar_sesion(db, sesion, "INITIAL", {})
         return client_info["greeting"] + "\n\n" + menu_principal()
     
-    # Ver catálogo
-    if mensaje_lower in ["1", "ver catalogo", "ver catálogo", "productos", "catalog", "que productos tienes", "que tienes", "stock"]:
+    # Ver catálogo - Expandir palabras clave
+    catalog_keywords = ["1", "ver catalogo", "ver catálogo", "productos", "catalog", "que productos tienes", 
+                       "que tienes", "stock", "dame el catalogo", "dame el catálogo", "catalogo de semillas",
+                       "catálogo de semillas", "mostrar productos", "lista de productos", "semillas disponibles"]
+    
+    if any(keyword in mensaje_lower for keyword in catalog_keywords) or mensaje_lower in catalog_keywords:
         productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono)
         catalogo = f"🌿 *{client_info['name']} - Catálogo disponible:*\n\n"
         for i, prod in enumerate(productos, 1):
@@ -368,5 +372,21 @@ Escribe *"pagado"* y verificaremos tu pago automáticamente."""
         except Exception as e:
             print(f"OpenAI error: {e}")
     
-    # Fallback si OpenAI falla
-    return f"🤖 {client_info['name']} - Asistente Virtual\n\n📱 Recibí: \"{mensaje}\"\n\n💡 Puedo ayudarte con:\n• Ver catálogo de productos\n• Procesar pedidos\n• Consultar estado de compras\n• Información general\n\n" + menu_principal()
+    # Fallback inteligente - Si menciona productos, mostrar catálogo directamente
+    if any(word in mensaje_lower for word in ["productos", "product", "catalogo", "catálogo", "semillas", "stock", "tienes", "disponibles"]):
+        productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono)
+        if productos:
+            catalogo = f"🌿 *{client_info['name']} - Catálogo disponible:*\n\n"
+            for i, prod in enumerate(productos, 1):
+                stock_status = "✅ Disponible" if prod['stock'] > 5 else f"⚠️ Quedan {prod['stock']}"
+                precio_formateado = format_price(prod['price'], tenant_info['currency'])
+                catalogo += f"{i}. **{prod['name']}** - {precio_formateado}\n"
+                catalogo += f"   {prod['description']}\n"
+                catalogo += f"   {stock_status}\n\n"
+            catalogo += "💬 *Para comprar:* Escribe el nombre del producto que quieres\n"
+            catalogo += "📝 *Ejemplo:* 'Quiero Northern Lights' o solo 'Northern Lights'"
+            guardar_sesion(db, sesion, "BROWSING", {})
+            return catalogo
+    
+    # Fallback final
+    return f"🤖 {client_info['name']} - Asistente Virtual\n\n📱 Recibí: \"{mensaje}\"\n\n💡 Puedo ayudarte con:\n• Ver catálogo de productos (escribe '1' o 'productos')\n• Procesar pedidos\n• Consultar estado de compras\n• Información general\n\n" + menu_principal()
