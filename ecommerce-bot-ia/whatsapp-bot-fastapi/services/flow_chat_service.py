@@ -7,6 +7,14 @@ import os
 from sqlalchemy.orm import Session
 from models import FlowProduct, FlowPedido, FlowProductoPedido, FlowSesion
 from services.flow_service import crear_orden_flow, get_client_id_for_phone
+from services.backoffice_integration import (
+    get_real_products_from_backoffice, 
+    update_product_stock,
+    get_product_by_name_fuzzy,
+    get_tenant_from_phone,
+    get_tenant_info,
+    format_price
+)
 from datetime import datetime
 
 # OpenAI integration (if available)
@@ -83,50 +91,33 @@ def guardar_sesion(db: Session, sesion, estado: str = None, datos: dict = None):
     sesion.updated_at = datetime.utcnow()
     db.commit()
 
-def obtener_productos_cliente(db: Session, client_type: str = "cannabis"):
-    """Obtiene los productos disponibles según el tipo de cliente"""
-    productos = db.query(FlowProduct).all()
-    if not productos:
-        # Crear productos específicos según el tipo de cliente
-        if client_type == "cannabis":
-            productos_ejemplo = [
-                {"nombre": "Blue Dream", "precio": 25, "descripcion": "Semilla feminizada Blue Dream - Híbrida perfecta", "stock": 15},
-                {"nombre": "White Widow", "precio": 30, "descripcion": "Semilla White Widow - Clásica indica", "stock": 8},
-                {"nombre": "OG Kush", "precio": 28, "descripcion": "Semilla OG Kush - Premium quality", "stock": 12},
-                {"nombre": "Northern Lights", "precio": 26, "descripcion": "Semilla Northern Lights - Indica relajante", "stock": 10},
-                {"nombre": "Sour Diesel", "precio": 32, "descripcion": "Semilla Sour Diesel - Sativa energizante", "stock": 6}
-            ]
-        else:
-            productos_ejemplo = [
-                {"nombre": "iPhone 15 Pro", "precio": 1300, "descripcion": "iPhone 15 Pro con 256GB", "stock": 15},
-                {"nombre": "MacBook Air M3", "precio": 1200, "descripcion": "MacBook Air con chip M3", "stock": 8},
-                {"nombre": "iPad Air", "precio": 800, "descripcion": "iPad Air 2024", "stock": 12},
-                {"nombre": "AirPods Pro", "precio": 300, "descripcion": "AirPods Pro 2da generación", "stock": 25},
-                {"nombre": "Apple Watch", "precio": 400, "descripcion": "Apple Watch Series 9", "stock": 10}
-            ]
-        
-        for prod_data in productos_ejemplo:
-            producto = FlowProduct(
-                nombre=prod_data["nombre"],
-                precio=prod_data["precio"], 
-                descripcion=prod_data["descripcion"],
-                stock=prod_data.get("stock", 1),
-                client_id="sintestesia"  # Single tenant
-            )
-            db.add(producto)
-        
-        db.commit()
-        productos = db.query(FlowProduct).all()
+def obtener_productos_cliente_real(db: Session, telefono: str):
+    """
+    Obtiene productos reales del backoffice en tiempo real
+    Multi-tenant compatible basado en número de teléfono
+    """
+    tenant_id = get_tenant_from_phone(telefono)
+    productos = get_real_products_from_backoffice(db, tenant_id)
+    tenant_info = get_tenant_info(tenant_id)
     
-    return productos
+    return productos, tenant_id, tenant_info
 
 def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
     """
     Procesa mensajes con lógica de Flow integrada
-    Multi-tenant compatible
+    Multi-tenant compatible - consulta productos reales del backoffice
     """
-    # Obtener información del cliente
-    client_info = TENANT_CLIENTS.get(telefono)
+    # Obtener información del tenant basado en el teléfono
+    tenant_id = get_tenant_from_phone(telefono)
+    tenant_info = get_tenant_info(tenant_id)
+    
+    # Mantener compatibilidad con código existente
+    client_info = {
+        "name": tenant_info["name"],
+        "type": tenant_info["type"],
+        "greeting": tenant_info["greeting"]
+    }
+    
     if not client_info:
         return f"""❌ Cliente no configurado: {telefono}
         
@@ -180,12 +171,13 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
     
     # Ver catálogo
     if mensaje_lower in ["1", "ver catalogo", "ver catálogo", "productos", "catalog", "que productos tienes", "que tienes", "stock"]:
-        productos = obtener_productos_cliente(db, client_info['type'])
+        productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono)
         catalogo = f"🌿 *{client_info['name']} - Catálogo disponible:*\n\n"
         for i, prod in enumerate(productos, 1):
-            stock_status = "✅ Disponible" if prod.stock > 5 else f"⚠️ Quedan {prod.stock}"
-            catalogo += f"{i}. **{prod.nombre}** - ${prod.precio}\n"
-            catalogo += f"   {prod.descripcion}\n"
+            stock_status = "✅ Disponible" if prod['stock'] > 5 else f"⚠️ Quedan {prod['stock']}"
+            precio_formateado = format_price(prod['price'], tenant_info['currency'])
+            catalogo += f"{i}. **{prod['name']}** - {precio_formateado}\n"
+            catalogo += f"   {prod['description']}\n"
             catalogo += f"   {stock_status}\n\n"
         catalogo += "💬 *Para comprar:* Escribe el nombre del producto que quieres\n"
         catalogo += "📝 *Ejemplo:* 'Quiero Blue Dream' o solo 'Blue Dream'"
@@ -194,8 +186,8 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
     
     # Detectar intención de compra específica
     if sesion.estado in ["INITIAL", "BROWSING"] or any(word in mensaje_lower for word in ["quiero", "necesito", "comprar", "llevar", "recomien"]):
-        productos = obtener_productos_cliente(db, client_info['type'])
-        productos_info = {prod.nombre.lower(): {"id": prod.id, "nombre": prod.nombre, "precio": prod.precio, "stock": prod.stock} 
+        productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono)
+        productos_info = {prod['name'].lower(): {"id": prod['id'], "nombre": prod['name'], "precio": prod['price'], "stock": prod['stock']} 
                          for prod in productos}
         
         # Mejorar detección de productos (incluir palabras parciales)
@@ -266,11 +258,16 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
             db.commit()
             db.refresh(pedido)
             
-            # Crear productos del pedido
+            # Crear productos del pedido y actualizar stock en tiempo real
             for prod_id, item in pedido_data.items():
+                # Actualizar stock en la tabla products del backoffice
+                stock_actualizado = update_product_stock(db, prod_id, item["cantidad"], tenant_id)
+                if not stock_actualizado:
+                    return f"❌ Error: No hay suficiente stock de {item['nombre']}. Intenta con menos cantidad."
+                
                 producto_pedido = FlowProductoPedido(
                     pedido_id=pedido.id,
-                    producto_id=int(prod_id),
+                    producto_id=prod_id,  # Usar string ID del backoffice
                     cantidad=item["cantidad"],
                     precio_unitario=item["precio"]
                 )
@@ -280,18 +277,20 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
             
             # Crear orden de pago en Flow
             descripcion = f"Pedido_{client_info['name']}_{pedido.id}"
-            url_pago = crear_orden_flow(str(pedido.id), int(total), descripcion, "sintestesia", db)
+            url_pago = crear_orden_flow(str(pedido.id), int(total), descripcion, tenant_id, db)
             
             # Preparar resumen del pedido con formato mejorado
             resumen_productos = ""
             for item in pedido_data.values():
-                resumen_productos += f"• {item['cantidad']} x {item['nombre']} = ${item['precio'] * item['cantidad']}\n"
+                precio_formateado = format_price(item['precio'] * item['cantidad'], tenant_info['currency'])
+                resumen_productos += f"• {item['cantidad']} x {item['nombre']} = {precio_formateado}\n"
             
+            total_formateado = format_price(total, tenant_info['currency'])
             respuesta = f"""🎉 **¡Pedido confirmado!** #{pedido.id}
 
 🛒 **Tu compra:**
 {resumen_productos}
-💰 **Total: ${total}**
+💰 **Total: {total_formateado}**
 
 💳 **Para completar tu pedido:**
 👉 Haz clic aquí para pagar: {url_pago}
@@ -334,8 +333,8 @@ Escribe *"pagado"* y verificaremos tu pago automáticamente."""
     if OPENAI_AVAILABLE:
         try:
             client = openai.OpenAI()
-            productos = obtener_productos_cliente(db, client_info['type'])
-            productos_info = [f"{prod.nombre} (${prod.precio})" for prod in productos]
+            productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono)
+            productos_info = [f"{prod['name']} (${prod['price']})" for prod in productos]
             
             # Contexto más específico para cada tipo de cliente
             if client_info['type'] == 'cannabis':
