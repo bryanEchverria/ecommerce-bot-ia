@@ -83,18 +83,27 @@ def guardar_sesion(db: Session, sesion, estado: str = None, datos: dict = None):
     sesion.updated_at = datetime.utcnow()
     db.commit()
 
-def obtener_productos_cliente(db: Session):
-    """Obtiene los productos disponibles (single tenant)"""
+def obtener_productos_cliente(db: Session, client_type: str = "cannabis"):
+    """Obtiene los productos disponibles según el tipo de cliente"""
     productos = db.query(FlowProduct).all()
     if not productos:
-        # Crear productos de ejemplo si no existen
-        productos_ejemplo = [
-            {"nombre": "iPhone 15 Pro", "precio": 1300, "descripcion": "iPhone 15 Pro con 256GB", "stock": 15},
-            {"nombre": "MacBook Air M3", "precio": 1200, "descripcion": "MacBook Air con chip M3", "stock": 8},
-            {"nombre": "iPad Air", "precio": 800, "descripcion": "iPad Air 2024", "stock": 12},
-            {"nombre": "AirPods Pro", "precio": 300, "descripcion": "AirPods Pro 2da generación", "stock": 25},
-            {"nombre": "Apple Watch", "precio": 400, "descripcion": "Apple Watch Series 9", "stock": 10}
-        ]
+        # Crear productos específicos según el tipo de cliente
+        if client_type == "cannabis":
+            productos_ejemplo = [
+                {"nombre": "Blue Dream", "precio": 25, "descripcion": "Semilla feminizada Blue Dream - Híbrida perfecta", "stock": 15},
+                {"nombre": "White Widow", "precio": 30, "descripcion": "Semilla White Widow - Clásica indica", "stock": 8},
+                {"nombre": "OG Kush", "precio": 28, "descripcion": "Semilla OG Kush - Premium quality", "stock": 12},
+                {"nombre": "Northern Lights", "precio": 26, "descripcion": "Semilla Northern Lights - Indica relajante", "stock": 10},
+                {"nombre": "Sour Diesel", "precio": 32, "descripcion": "Semilla Sour Diesel - Sativa energizante", "stock": 6}
+            ]
+        else:
+            productos_ejemplo = [
+                {"nombre": "iPhone 15 Pro", "precio": 1300, "descripcion": "iPhone 15 Pro con 256GB", "stock": 15},
+                {"nombre": "MacBook Air M3", "precio": 1200, "descripcion": "MacBook Air con chip M3", "stock": 8},
+                {"nombre": "iPad Air", "precio": 800, "descripcion": "iPad Air 2024", "stock": 12},
+                {"nombre": "AirPods Pro", "precio": 300, "descripcion": "AirPods Pro 2da generación", "stock": 25},
+                {"nombre": "Apple Watch", "precio": 400, "descripcion": "Apple Watch Series 9", "stock": 10}
+            ]
         
         for prod_data in productos_ejemplo:
             producto = FlowProduct(
@@ -170,32 +179,43 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
         return client_info["greeting"] + "\n\n" + menu_principal()
     
     # Ver catálogo
-    if mensaje_lower in ["1", "ver catalogo", "ver catálogo", "productos", "catalog"]:
-        productos = obtener_productos_cliente(db)
-        catalogo = f"📦 *Catálogo de {client_info['name']}:*\n"
-        for prod in productos:
-            catalogo += f"- {prod.nombre} (${prod.precio:.0f})\n"
-        catalogo += "\n👉 ¿Quieres comprar algo? Escríbeme qué necesitas."
+    if mensaje_lower in ["1", "ver catalogo", "ver catálogo", "productos", "catalog", "que productos tienes", "que tienes", "stock"]:
+        productos = obtener_productos_cliente(db, client_info['type'])
+        catalogo = f"🌿 *{client_info['name']} - Catálogo disponible:*\n\n"
+        for i, prod in enumerate(productos, 1):
+            stock_status = "✅ Disponible" if prod.stock > 5 else f"⚠️ Quedan {prod.stock}"
+            catalogo += f"{i}. **{prod.nombre}** - ${prod.precio}\n"
+            catalogo += f"   {prod.descripcion}\n"
+            catalogo += f"   {stock_status}\n\n"
+        catalogo += "💬 *Para comprar:* Escribe el nombre del producto que quieres\n"
+        catalogo += "📝 *Ejemplo:* 'Quiero Blue Dream' o solo 'Blue Dream'"
         guardar_sesion(db, sesion, "BROWSING", {})
         return catalogo
     
-    # Procesamiento con OpenAI para extraer productos
-    if sesion.estado in ["INITIAL", "BROWSING"] or any(word in mensaje_lower for word in ["quiero", "necesito", "comprar", "llevar"]):
-        # Usar OpenAI para procesar el pedido
-        productos = obtener_productos_cliente(db)
-        productos_info = {prod.nombre.lower(): {"id": prod.id, "nombre": prod.nombre, "precio": prod.precio} 
+    # Detectar intención de compra específica
+    if sesion.estado in ["INITIAL", "BROWSING"] or any(word in mensaje_lower for word in ["quiero", "necesito", "comprar", "llevar", "recomien"]):
+        productos = obtener_productos_cliente(db, client_info['type'])
+        productos_info = {prod.nombre.lower(): {"id": prod.id, "nombre": prod.nombre, "precio": prod.precio, "stock": prod.stock} 
                          for prod in productos}
         
-        # Lógica simple de procesamiento de pedidos
+        # Mejorar detección de productos (incluir palabras parciales)
         pedido_detectado = {}
+        mensaje_words = mensaje_lower.split()
+        
         for nombre_prod, info in productos_info.items():
-            if nombre_prod in mensaje_lower:
-                # Buscar cantidad
+            prod_words = nombre_prod.split()
+            # Verificar coincidencia completa o parcial
+            if nombre_prod in mensaje_lower or any(word in mensaje_words for word in prod_words):
+                # Extraer cantidad del mensaje
                 cantidad = 1
                 for word in mensaje.split():
                     if word.isdigit():
                         cantidad = int(word)
                         break
+                
+                # Verificar stock disponible
+                if cantidad > info["stock"]:
+                    return f"❌ Lo siento, solo tenemos {info['stock']} unidades de {info['nombre']} disponibles.\n\n¿Quieres esa cantidad? Escribe 'sí' o elige otro producto."
                 
                 pedido_detectado[info["id"]] = {
                     "nombre": info["nombre"],
@@ -203,20 +223,34 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
                     "cantidad": cantidad
                 }
         
+        # Si se detectó un producto específico
         if pedido_detectado:
             total = sum(item["precio"] * item["cantidad"] for item in pedido_detectado.values())
             
-            resumen = "🔎 Esto es lo que entendí:\n"
+            resumen = "🛒 **Resumen de tu pedido:**\n\n"
             for item in pedido_detectado.values():
-                resumen += f"{item['cantidad']} x {item['nombre']}\n"
-            resumen += f"Total: ${total:.0f}\n👉 ¿Confirmas tu pedido? (sí o no)"
+                resumen += f"• {item['cantidad']} x {item['nombre']} = ${item['precio'] * item['cantidad']}\n"
+            resumen += f"\n💰 **Total: ${total}**\n\n"
+            resumen += "✅ ¿Confirmas este pedido?\n"
+            resumen += "👉 Responde: **SÍ** para confirmar o **NO** para cancelar"
             
             guardar_sesion(db, sesion, "ORDER_CONFIRMATION", {"pedido": pedido_detectado, "total": total})
             return resumen
+        
+        # Si pregunta por recomendaciones
+        elif any(word in mensaje_lower for word in ["recomien", "recomienda", "suger", "cual", "mejor"]):
+            if client_info['type'] == 'cannabis':
+                return f"🌿 **Para principiantes recomiendo:**\n\n• **Blue Dream** (${productos[0].precio}) - Híbrida equilibrada, ideal para comenzar\n• **Northern Lights** (${productos[3].precio}) - Indica suave y relajante\n\n💬 Escribe el nombre del que te interesa para comprarlo"
+            else:
+                return f"📱 **Productos más populares:**\n\n• **{productos[0].nombre}** (${productos[0].precio})\n• **{productos[1].nombre}** (${productos[1].precio})\n\n💬 Escribe el nombre del que te interesa"
+        
+        # Si no se detectó producto específico pero hay intención de compra
+        elif any(word in mensaje_lower for word in ["quiero", "necesito", "comprar"]):
+            return f"🔍 No encontré ese producto específico.\n\n💡 **Escribe '1' para ver todo el catálogo** o dime exactamente qué producto buscas.\n\nEjemplo: 'Blue Dream' o 'iPhone'"
     
     # Confirmación de pedido
     if sesion.estado == "ORDER_CONFIRMATION":
-        if any(word in mensaje_lower for word in ["sí", "si", "yes", "confirmo", "ok"]):
+        if any(word in mensaje_lower for word in ["sí", "si", "yes", "confirmo", "ok", "acepto"]):
             datos = json.loads(sesion.datos)
             pedido_data = datos["pedido"]
             total = datos["total"]
@@ -248,23 +282,33 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str) -> str:
             descripcion = f"Pedido_{client_info['name']}_{pedido.id}"
             url_pago = crear_orden_flow(str(pedido.id), int(total), descripcion, "sintestesia", db)
             
-            # Preparar resumen del pedido
-            resumen_productos = "\n".join([f"{item['cantidad']} x {item['nombre']}" 
-                                         for item in pedido_data.values()])
+            # Preparar resumen del pedido con formato mejorado
+            resumen_productos = ""
+            for item in pedido_data.values():
+                resumen_productos += f"• {item['cantidad']} x {item['nombre']} = ${item['precio'] * item['cantidad']}\n"
             
-            respuesta = f"""✅ Pedido confirmado #{pedido.id}: {resumen_productos}
-Total: ${total:.0f}
-👉 Para continuar, realiza el pago aquí:
-{url_pago}
+            respuesta = f"""🎉 **¡Pedido confirmado!** #{pedido.id}
 
-Cuando termines el pago, escribe *pagado* para confirmar."""
+🛒 **Tu compra:**
+{resumen_productos}
+💰 **Total: ${total}**
+
+💳 **Para completar tu pedido:**
+👉 Haz clic aquí para pagar: {url_pago}
+
+⏰ **Después del pago:**
+Escribe *"pagado"* y verificaremos tu pago automáticamente."""
             
             guardar_sesion(db, sesion, "ORDER_SCHEDULING", {"pedido_id": pedido.id})
             return respuesta
             
         elif any(word in mensaje_lower for word in ["no", "cancelar", "cancel"]):
             guardar_sesion(db, sesion, "INITIAL", {})
-            return "❌ Pedido cancelado.\n" + menu_principal()
+            return "❌ **Pedido cancelado**\n\n" + menu_principal()
+        
+        # Si escribe algo diferente durante la confirmación
+        else:
+            return f"❓ No entendí tu respuesta.\n\n⚡ **Responde claramente:**\n• **SÍ** - para confirmar el pedido\n• **NO** - para cancelar\n\n🔄 ¿Confirmas tu pedido?"
     
     # Otras opciones del menú
     if mensaje_lower == "2":
@@ -274,7 +318,7 @@ Cuando termines el pago, escribe *pagado* para confirmar."""
         return "🐛 Para reportar un problema, envía un email a soporte@empresa.com\n\n" + menu_principal()
     
     if mensaje_lower == "4":
-        pedidos = db.query(FlowPedido).filter_by(telefono=telefono, client_id="sintestesia").all()
+        pedidos = db.query(FlowPedido).filter_by(telefono=telefono).all()
         if pedidos:
             respuesta = f"📋 Tus pedidos en {client_info['name']}:\n\n"
             for pedido in pedidos[-3:]:  # Últimos 3 pedidos
@@ -290,19 +334,28 @@ Cuando termines el pago, escribe *pagado* para confirmar."""
     if OPENAI_AVAILABLE:
         try:
             client = openai.OpenAI()
-            productos = obtener_productos_cliente(db)
+            productos = obtener_productos_cliente(db, client_info['type'])
             productos_info = [f"{prod.nombre} (${prod.precio})" for prod in productos]
             
+            # Contexto más específico para cada tipo de cliente
+            if client_info['type'] == 'cannabis':
+                contexto = "Especialista en productos canábicos premium. Enfócate en semillas de calidad."
+            else:
+                contexto = f"Especialista en {client_info['type']}."
+            
             prompt = f"""
-            Eres un asistente de ventas para {client_info['name']}, una tienda de {client_info['type']}.
+            Eres un {contexto} para {client_info['name']}.
             
-            Productos disponibles: {', '.join(productos_info)}
+            PRODUCTOS DISPONIBLES: {', '.join(productos_info)}
             
-            Cliente escribió: "{mensaje}"
+            CLIENTE ESCRIBIÓ: "{mensaje}"
             
-            Responde de manera amigable y útil. Si pregunta por productos, menciona los disponibles.
-            Si quiere comprar algo, dile que escriba el nombre del producto.
-            Máximo 200 caracteres.
+            INSTRUCCIONES:
+            - Si pregunta por productos específicos, muestra SOLO el que pregunta con precio y descripción
+            - Si ya eligió un producto, NO sugieras otros, pregunta por la cantidad o confirma la compra
+            - Si dice "solo quiero X", respeta su decisión y procede con ESE producto únicamente
+            - Sé directo y conciso, máximo 150 caracteres
+            - NUNCA ignores lo que el cliente dice claramente
             """
             
             response = client.chat.completions.create(
