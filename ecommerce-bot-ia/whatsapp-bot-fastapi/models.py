@@ -129,3 +129,25 @@ class FlowSesion(Base):
     conversation_active = Column(Boolean, default=True)  # Si la conversación está activa
     created_at = Column(DateTime, default=datetime.utcnow)
     updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)
+
+# ============ MODELOS PARA MULTI-TENANT Y TWILIO ============
+
+class TenantClient(Base):
+    __tablename__ = "tenant_clients"
+    
+    id = Column(String, primary_key=True, index=True)
+    name = Column(String, nullable=False)
+    slug = Column(String, unique=True, index=True, nullable=False)
+    created_at = Column(DateTime, default=datetime.utcnow)
+
+class TwilioAccount(Base):
+    __tablename__ = "twilio_accounts"
+    
+    id = Column(String, primary_key=True, index=True)
+    tenant_id = Column(String, nullable=False, index=True)
+    account_sid = Column(String, nullable=False)
+    auth_token_enc = Column(Text, nullable=False)  # Encrypted auth token
+    from_number = Column(String, nullable=True)
+    status = Column(String, default="active")
+    created_at = Column(DateTime, default=datetime.utcnow)
+    updated_at = Column(DateTime, default=datetime.utcnow, onupdate=datetime.utcnow)

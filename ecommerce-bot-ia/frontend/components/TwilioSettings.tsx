@@ -31,7 +31,7 @@ const TwilioSettings: React.FC = () => {
   // Form state
   const [accountSid, setAccountSid] = useState('');
   const [authToken, setAuthToken] = useState('');
-  const [fromNumber, setFromNumber] = useState('whatsapp:+14155238886');
+  const [fromNumber, setFromNumber] = useState('+14155238886');
 
   useEffect(() => {
     loadConfig();
@@ -44,7 +44,12 @@ const TwilioSettings: React.FC = () => {
       const data = await tenantTwilioApi.getConfig();
       setConfig(data);
       setAccountSid(data.account_sid);
-      setFromNumber(data.from_number || 'whatsapp:+14155238886');
+      // Remove whatsapp: prefix from display
+      let displayFromNumber = data.from_number || '+14155238886';
+      if (displayFromNumber.startsWith('whatsapp:')) {
+        displayFromNumber = displayFromNumber.replace('whatsapp:', '');
+      }
+      setFromNumber(displayFromNumber);
     } catch (error: any) {
       if (!error.message.includes('404')) {
         console.error('Error loading Twilio config:', error);
@@ -77,10 +82,19 @@ const TwilioSettings: React.FC = () => {
 
     setSaving(true);
     try {
+      // Process the from_number to ensure correct format
+      let processedFromNumber = fromNumber.trim();
+      if (processedFromNumber && !processedFromNumber.startsWith('whatsapp:')) {
+        // Add whatsapp: prefix if it's a phone number without prefix
+        if (processedFromNumber.startsWith('+')) {
+          processedFromNumber = `whatsapp:${processedFromNumber}`;
+        }
+      }
+
       const formData: TwilioConfigForm = {
         account_sid: accountSid.trim(),
         auth_token: authToken.trim(),
-        from_number: fromNumber.trim() || undefined,
+        from_number: processedFromNumber || undefined,
       };
 
       const savedConfig = await tenantTwilioApi.upsertConfig(formData);
@@ -125,7 +139,7 @@ const TwilioSettings: React.FC = () => {
       setConfig(null);
       setAccountSid('');
       setAuthToken('');
-      setFromNumber('whatsapp:+14155238886');
+      setFromNumber('+14155238886');
       showToast('Configuración de Twilio eliminada exitosamente', 'success');
     } catch (error: any) {
       console.error('Error deleting Twilio config:', error);
@@ -239,7 +253,7 @@ const TwilioSettings: React.FC = () => {
               type="text"
               value={fromNumber}
               onChange={(e) => setFromNumber(e.target.value)}
-              placeholder="whatsapp:+14155238886"
+              placeholder="+14155238886"
               className="w-full px-3 py-2 border border-outline-light dark:border-outline-dark rounded-md bg-surface-light dark:bg-surface-dark text-on-surface-light dark:text-on-surface-dark font-mono text-sm"
             />
             <p className="text-xs text-on-surface-secondary-light dark:text-on-surface-secondary-dark mt-1">

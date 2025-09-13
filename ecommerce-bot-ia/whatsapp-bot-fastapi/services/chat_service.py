@@ -96,7 +96,7 @@ async def process_with_openai(mensaje: str, client_info: Dict) -> str:
         print(f"OpenAI error: {e}")
         return None
 
-async def procesar_mensaje(telefono: str, mensaje: str) -> str:
+async def procesar_mensaje(telefono: str, mensaje: str, tenant_id: str = None) -> str:
     """
     Main message processing function
     Integrates with Flow payment system for multi-tenant e-commerce
@@ -120,7 +120,7 @@ async def procesar_mensaje(telefono: str, mensaje: str) -> str:
         db = SessionLocal()
         try:
             # Use the integrated Flow chat service
-            response = procesar_mensaje_flow(db, telefono, mensaje)
+            response = procesar_mensaje_flow(db, telefono, mensaje, tenant_id)
             return response
         finally:
             db.close()

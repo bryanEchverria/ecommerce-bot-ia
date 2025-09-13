@@ -51,7 +51,7 @@ const WhatsAppSettings: React.FC = () => {
   // Twilio form state
   const [twilioAccountSid, setTwilioAccountSid] = useState('');
   const [twilioAuthToken, setTwilioAuthToken] = useState('');
-  const [twilioFromNumber, setTwilioFromNumber] = useState('whatsapp:+14155238886');
+  const [twilioFromNumber, setTwilioFromNumber] = useState('+14155238886');
   
   // Meta form state
   const [metaToken, setMetaToken] = useState('');
@@ -83,7 +83,12 @@ const WhatsAppSettings: React.FC = () => {
         
         // Set display values for existing config (sin exponer tokens)
         if (data.provider === 'twilio') {
-          setTwilioFromNumber(data.twilio_from || 'whatsapp:+14155238886');
+          // Remove whatsapp: prefix from display
+          let displayFromNumber = data.twilio_from || '+14155238886';
+          if (displayFromNumber.startsWith('whatsapp:')) {
+            displayFromNumber = displayFromNumber.replace('whatsapp:', '');
+          }
+          setTwilioFromNumber(displayFromNumber);
         } else if (data.provider === 'meta') {
           setMetaPhoneNumberId(data.meta_phone_number_id || '');
           setMetaGraphVersion(data.meta_graph_api_version || 'v21.0');
@@ -114,10 +119,20 @@ const WhatsAppSettings: React.FC = () => {
         if (!twilioAccountSid || !twilioAuthToken) {
           throw new Error('Account SID y Auth Token son requeridos para Twilio');
         }
+        
+        // Process the from_number to ensure correct format
+        let processedFromNumber = twilioFromNumber.trim();
+        if (processedFromNumber && !processedFromNumber.startsWith('whatsapp:')) {
+          // Add whatsapp: prefix if it's a phone number without prefix
+          if (processedFromNumber.startsWith('+')) {
+            processedFromNumber = `whatsapp:${processedFromNumber}`;
+          }
+        }
+        
         formData.twilio_settings = {
           account_sid: twilioAccountSid,
           auth_token: twilioAuthToken,
-          from_number: twilioFromNumber,
+          from_number: processedFromNumber,
         };
       } else if (provider === 'meta') {
         if (!metaToken || !metaPhoneNumberId) {
@@ -335,7 +350,7 @@ const WhatsAppSettings: React.FC = () => {
                 type="text"
                 value={twilioFromNumber}
                 onChange={(e) => setTwilioFromNumber(e.target.value)}
-                placeholder="whatsapp:+14155238886"
+                placeholder="+14155238886"
                 className="w-full px-3 py-2 border border-outline-light dark:border-outline-dark rounded-md bg-surface-light dark:bg-surface-dark text-on-surface-light dark:text-on-surface-dark"
               />
             </div>

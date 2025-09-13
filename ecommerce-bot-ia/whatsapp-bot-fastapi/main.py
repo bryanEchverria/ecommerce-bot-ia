@@ -16,6 +16,7 @@ sys.path.append(str(services_dir))
 from services.chat_service import procesar_mensaje
 from services.health_service import health_check
 from api.webhook_meta import router as meta_webhook_router
+from api.webhook_twilio import router as twilio_webhook_router
 from database import Base, engine # Importar Base y engine
 
 app = FastAPI(
@@ -31,6 +32,9 @@ def startup_event():
 
 # Include Meta WhatsApp webhook router
 app.include_router(meta_webhook_router, tags=["meta-webhook"])
+
+# Include Twilio WhatsApp webhook router
+app.include_router(twilio_webhook_router, tags=["twilio-webhook"])
 
 class WebhookMessage(BaseModel):
     telefono: str
