@@ -144,20 +144,29 @@ async def twilio_webhook_multi_tenant(request: Request, db: Session = Depends(ge
 
 async def process_whatsapp_message(phone_number: str, message: str, message_sid: str, tenant_id: str = None) -> str:
     """
-    Procesa un mensaje de WhatsApp usando el servicio de chat y devuelve una respuesta en formato TwiML
+    Procesa un mensaje de WhatsApp usando el servicio Flow integrado y devuelve una respuesta en formato TwiML
     """
     try:
-        # Import chat service
+        # Import Flow chat service directly
         try:
-            from services.chat_service import procesar_mensaje
-            # Process message with chat service
-            response_text = await procesar_mensaje(phone_number, message, tenant_id)
-        except ImportError:
-            logger.error("Chat service not available")
+            from services.flow_chat_service import procesar_mensaje_flow
+            
+            # Create database session
+            db = SessionLocal()
+            try:
+                # Use the Flow chat service with tenant context
+                response_text = procesar_mensaje_flow(db, phone_number, message, tenant_id)
+                logger.info(f"Flow service response: {response_text[:100]}...")
+            finally:
+                db.close()
+                
+        except ImportError as e:
+            logger.error(f"Flow chat service not available: {str(e)}")
             response_text = "⚠️ Sistema de chat inteligente no disponible. Intenta más tarde."
         except Exception as e:
-            logger.error(f"Error in chat service: {str(e)}")
-            response_text = f"❌ Error procesando mensaje: {str(e)}"
+            logger.error(f"Error in Flow chat service: {str(e)}")
+            # Fallback to simple response
+            response_text = f"🌿 ¡Hola! Estamos experimentando problemas técnicos. Intenta de nuevo en unos momentos."
         
         # Return TwiML response
         twiml_response = f"""<?xml version="1.0" encoding="UTF-8"?>

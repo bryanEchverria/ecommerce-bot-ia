@@ -59,21 +59,25 @@ TENANT_CLIENTS = {
     }
 }
 
-def menu_principal():
-    return """🤖 *Bienvenido al Bot Automatizado* 🤖
-Elige una opción:
-1️⃣ Ver catálogo
-2️⃣ Hablar con un ejecutivo  
-3️⃣ Reportar un problema
-4️⃣ Consultar estado de mi pedido"""
+def menu_principal(client_info, productos):
+    """Muestra el catálogo de productos directamente en lugar de un menú genérico"""
+    catalogo = f"🌿 *{client_info['name']} - Catálogo disponible:*\n\n"
+    for i, prod in enumerate(productos, 1):
+        stock_status = "✅ Disponible" if prod['stock'] > 5 else f"⚠️ Quedan {prod['stock']}"
+        catalogo += f"{i}. **{prod['name']}** - ${prod['price']:,.0f}\n"
+        catalogo += f"   {prod['description']}\n"
+        catalogo += f"   {stock_status}\n\n"
+    catalogo += "💬 *Para comprar:* Escribe el nombre del producto que quieres\n"
+    catalogo += "📝 *Ejemplo:* 'Quiero Northern Lights' o solo 'Northern Lights'"
+    return catalogo
 
-def obtener_sesion(db: Session, telefono: str, client_id: str):
+def obtener_sesion(db: Session, telefono: str, tenant_id: str):
     """Obtiene o crea una sesión para el usuario"""
     sesion = db.query(FlowSesion).filter_by(telefono=telefono).first()
     if not sesion:
         sesion = FlowSesion(
             telefono=telefono,
-            client_id="sintestesia",
+            tenant_id=tenant_id,
             estado="INITIAL",
             datos="{}"
         )
@@ -129,7 +133,7 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: s
 
 🧪 PRUEBA: Usa uno de estos números"""
 
-    sesion = obtener_sesion(db, telefono, "sintestesia")
+    sesion = obtener_sesion(db, telefono, tenant_id)
     datos_sesion = json.loads(sesion.datos) if sesion.datos else {}
     
     mensaje_lower = mensaje.lower().strip()
@@ -137,7 +141,6 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: s
     # Verificar pedido pendiente de pago
     pedido_pendiente = db.query(FlowPedido).filter_by(
         telefono=telefono,
-        client_id="sintestesia",
         estado="pendiente_pago"
     ).first()
     
@@ -160,14 +163,17 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: s
             pedido_pendiente.estado = "cancelado"
             db.commit()
             guardar_sesion(db, sesion, "INITIAL", {})
-            return f"❌ Tu pedido #{pedido_pendiente.id} ha sido *cancelado*.\n" + menu_principal()
+            productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono)
+            return f"❌ Tu pedido #{pedido_pendiente.id} ha sido *cancelado*.\n" + menu_principal(client_info, productos)
         else:
-            return "No tienes pedidos pendientes para cancelar.\n" + menu_principal()
+            productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono)
+            return "No tienes pedidos pendientes para cancelar.\n" + menu_principal(client_info, productos)
     
     # Saludos
     if any(word in mensaje_lower for word in ["hola", "hi", "hello", "buenas", "menu", "inicio"]):
         guardar_sesion(db, sesion, "INITIAL", {})
-        return client_info["greeting"] + "\n\n" + menu_principal()
+        productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono)
+        return client_info["greeting"] + "\n\n" + menu_principal(client_info, productos)
     
     # Ver catálogo - Expandir palabras clave
     catalog_keywords = ["1", "ver catalogo", "ver catálogo", "productos", "catalog", "que productos tienes", 
@@ -188,8 +194,58 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: s
         guardar_sesion(db, sesion, "BROWSING", {})
         return catalogo
     
-    # Detectar intención de compra específica
-    if sesion.estado in ["INITIAL", "BROWSING"] or any(word in mensaje_lower for word in ["quiero", "necesito", "comprar", "llevar", "recomien"]):
+    # Preguntas exploratorias por categoría (NO son intención de compra)
+    category_questions = ["que semillas tienes", "qué semillas tienes", "semillas disponibles", 
+                         "que aceites tienes", "qué aceites tienes", "aceites disponibles",
+                         "que brownies tienes", "qué brownies tienes", "brownies disponibles",
+                         "que bongs tienes", "qué bongs tienes", "bongs disponibles",
+                         "que grinders tienes", "qué grinders tienes", "grinders disponibles"]
+    
+    if any(question in mensaje_lower for question in category_questions):
+        productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono)
+        
+        # Determinar categoría solicitada
+        categoria = None
+        if "semilla" in mensaje_lower:
+            categoria = "semilla"
+        elif "aceite" in mensaje_lower:
+            categoria = "aceite"
+        elif "brownie" in mensaje_lower:
+            categoria = "brownie"
+        elif "bong" in mensaje_lower:
+            categoria = "bong"
+        elif "grinder" in mensaje_lower:
+            categoria = "grinder"
+        
+        # Filtrar productos por categoría
+        productos_filtrados = []
+        if categoria:
+            productos_filtrados = [p for p in productos if categoria in p['name'].lower()]
+        else:
+            productos_filtrados = productos
+        
+        if not productos_filtrados:
+            return f"💡 No tenemos {categoria}s disponibles en este momento.\n\n🌿 Ver catálogo completo: Escribe '1' o 'catálogo'"
+        
+        # Mostrar productos de la categoría
+        catalogo = f"🌿 *{categoria.title()}s disponibles en {client_info['name']}:*\n\n"
+        for i, prod in enumerate(productos_filtrados, 1):
+            stock_status = "✅ Disponible" if prod['stock'] > 5 else f"⚠️ Quedan {prod['stock']}"
+            precio_formateado = f"${prod['price']:,.0f}"
+            catalogo += f"{i}. **{prod['name']}** - {precio_formateado}\n"
+            catalogo += f"   {prod['description']}\n"
+            catalogo += f"   {stock_status}\n\n"
+        catalogo += f"💬 *Para comprar:* Escribe 'Quiero [nombre del producto]'\n"
+        catalogo += f"📝 *Ejemplo:* 'Quiero {productos_filtrados[0]['name']}'"
+        
+        guardar_sesion(db, sesion, "BROWSING", {})
+        return catalogo
+    
+    # Intención de compra específica (palabras que indican compra + nombre de producto)
+    purchase_intent_words = ["quiero", "necesito", "comprar", "llevar", "dame", "vendeme"]
+    has_purchase_intent = any(word in mensaje_lower for word in purchase_intent_words)
+    
+    if has_purchase_intent and sesion.estado in ["INITIAL", "BROWSING"]:
         productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono)
         productos_info = {prod['name'].lower(): {"id": prod['id'], "nombre": prod['name'], "precio": prod['price'], "stock": prod['stock']} 
                          for prod in productos}
@@ -254,7 +310,7 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: s
             # Crear pedido en BD
             pedido = FlowPedido(
                 telefono=telefono,
-                client_id="sintestesia",
+                tenant_id=tenant_id,
                 total=total,
                 estado="pendiente_pago"
             )
@@ -321,7 +377,7 @@ Escribe *"pagado"* y verificaremos tu pago automáticamente."""
         return "🐛 Para reportar un problema, envía un email a soporte@empresa.com\n\n" + menu_principal()
     
     if mensaje_lower == "4":
-        pedidos = db.query(FlowPedido).filter_by(telefono=telefono).all()
+        pedidos = db.query(FlowPedido).filter_by(telefono=telefono, tenant_id=tenant_id).all()
         if pedidos:
             respuesta = f"📋 Tus pedidos en {client_info['name']}:\n\n"
             for pedido in pedidos[-3:]:  # Últimos 3 pedidos

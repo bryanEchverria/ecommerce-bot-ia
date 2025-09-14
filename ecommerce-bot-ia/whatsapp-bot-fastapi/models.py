@@ -100,7 +100,7 @@ class FlowPedido(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     telefono = Column(String, index=True)
-    client_id = Column(String, index=True, nullable=False)  # Multi-tenant support
+    tenant_id = Column(String, index=True, nullable=False)  # Multi-tenant support
     total = Column(Float)
     estado = Column(String, default="pendiente_pago")  # pendiente_pago, pagado, cancelado
     token = Column(String, nullable=True)  # Token de Flow para verificar pago
@@ -121,7 +121,7 @@ class FlowSesion(Base):
     
     id = Column(Integer, primary_key=True, index=True)
     telefono = Column(String, unique=True, index=True)
-    client_id = Column(String, index=True, nullable=False)  # Multi-tenant support
+    tenant_id = Column(String, index=True, nullable=False)  # Multi-tenant support
     estado = Column(String, default="INITIAL")
     datos = Column(Text)  # JSON con datos de la sesión
     last_message_at = Column(DateTime, default=datetime.utcnow)  # Último mensaje del usuario
