@@ -17,20 +17,36 @@ try:
 except ImportError:
     OPENAI_AVAILABLE = False
 
-# Configuración simplificada sin multi-tenant
-STORE_CONFIG = {
-    "name": "Sintestesia",
-    "type": "electronics", 
-    "greeting": "📱 ¡Hola! Bienvenido a Sintestesia 📱💻\nTu tienda de tecnología favorita."
-}
+# Función para obtener configuración por tenant
+def get_store_config(db: Session, tenant_id: str):
+    """Obtiene configuración de tienda basada en tenant_id"""
+    from auth_models import TenantClient
+    
+    tenant = db.query(TenantClient).filter_by(id=tenant_id).first()
+    if not tenant:
+        # Configuración por defecto
+        return {
+            "name": "Tienda Online",
+            "type": "productos",
+            "greeting": "¡Hola! Bienvenido a nuestra tienda online."
+        }
+    
+    # Configuración dinámica basada en el tenant
+    return {
+        "name": tenant.name,
+        "type": "productos", 
+        "greeting": f"¡Hola! Bienvenido a {tenant.name}."
+    }
 
-def menu_principal():
-    return """🤖 *Bienvenido al Bot Automatizado* 🤖
-Elige una opción:
-1️⃣ Ver catálogo
-2️⃣ Hablar con un ejecutivo  
-3️⃣ Reportar un problema
-4️⃣ Consultar estado de mi pedido"""
+def menu_principal(store_name: str):
+    return f"""¡Hola! Soy tu asistente de ventas de {store_name}. 
+
+¿En qué puedo ayudarte hoy?
+
+Puedes escribir:
+• "ver catálogo" para conocer nuestros productos
+• El nombre de algún producto específico
+• "mi pedido" para consultar tu estado"""
 
 def obtener_sesion(db: Session, telefono: str, tenant_id: str = None):
     """Obtiene o crea una sesión para el usuario - multi-tenant aware"""
@@ -183,11 +199,11 @@ def obtener_productos(db: Session, tenant_id: str = None):
 
 def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: str = None) -> str:
     """
-    Procesa mensajes con lógica de Flow integrada
-    Multi-tenant compatible con seguimiento de conversación
+    Procesa mensajes con lógica de Flow integrada - Prompt multitienda
+    Compatible con sistema multi-tenant
     """
-    # Usar configuración única de tienda
-    store_info = STORE_CONFIG
+    # Obtener configuración dinámica de la tienda
+    store_info = get_store_config(db, tenant_id)
     
     sesion = obtener_sesion(db, telefono, tenant_id)
     
@@ -195,12 +211,12 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: s
     mensaje_lower = mensaje.lower().strip()
     if mensaje_lower == "continuar":
         guardar_sesion(db, sesion, "INITIAL", {})
-        return f"✅ ¡Perfecto! Continuemos donde estábamos.\n\n{menu_principal()}"
+        return f"✅ ¡Perfecto! Continuemos donde estábamos.\n\n{menu_principal(store_info['name'])}"
     elif mensaje_lower == "finalizar":
         sesion.conversation_active = False
         sesion.estado = "FINALIZADA"
         db.commit()
-        return "👋 Conversación finalizada. ¡Gracias por contactar Sintestesia! Envía *hola* cuando necesites ayuda nuevamente."
+        return f"👋 Conversación finalizada. ¡Gracias por contactar {store_info['name']}! Envía *hola* cuando necesites ayuda nuevamente."
     
     # Verificar timeout de conversación ANTES de procesar mensaje
     timeout_message = check_conversation_timeout(db, sesion)
@@ -212,7 +228,7 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: s
         guardar_sesion(db, sesion, "INITIAL", {}, True)
         sesion.conversation_active = True
         db.commit()
-        return f"{store_info['greeting']}\n\n{menu_principal()}"
+        return f"{store_info['greeting']}\n\n{menu_principal(store_info['name'])}"
     datos_sesion = json.loads(sesion.datos) if sesion.datos else {}
     
     mensaje_lower = mensaje.lower().strip()
@@ -247,26 +263,28 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: s
         else:
             return "No tienes pedidos pendientes para cancelar.\n" + menu_principal()
     
-    # Saludos
+    # Saludos - Saludo inicial con nombre de tienda
     if any(word in mensaje_lower for word in ["hola", "hi", "hello", "buenas", "menu", "inicio"]):
         guardar_sesion(db, sesion, "INITIAL", {})
-        return store_info["greeting"] + "\n\n" + menu_principal()
+        return f"¡Hola! Soy tu asistente de ventas de {store_info['name']}. ¿En qué puedo ayudarte hoy?"
     
-    # Ver catálogo
-    if mensaje_lower in ["1", "ver catalogo", "ver catálogo", "productos", "catalog"]:
+    # Ver catálogo - Mostrar categorías primero, no todo el catálogo
+    if mensaje_lower in ["ver catalogo", "ver catálogo", "productos", "catalog", "catálogo"]:
         productos = obtener_productos_disponibles(db, tenant_id)
-        catalogo = f"📦 *Catálogo de {store_info['name']}:*\n"
-        for prod in productos:
-            stock_info = f" (Stock: {getattr(prod, 'stock_disponible', '?')})" if hasattr(prod, 'stock_disponible') else ""
-            catalogo += f"- {prod.nombre} (${prod.precio:.0f}){stock_info}\n"
         
         if not productos:
-            catalogo += "❌ No hay productos disponibles en este momento.\n"
-        else:
-            catalogo += "\n👉 ¿Quieres comprar algo? Escríbeme qué necesitas."
-            
+            return "Lo siento, no tenemos productos disponibles en este momento."
+        
+        # Obtener categorías únicas
+        categorias = list(set([prod.descripcion.split(' - ')[1] if ' - ' in prod.descripcion else 'General' for prod in productos]))
+        
+        respuesta = f"Estas son nuestras categorías disponibles en {store_info['name']}:\n\n"
+        for i, categoria in enumerate(categorias, 1):
+            respuesta += f"{i}. {categoria}\n"
+        
+        respuesta += "\n¿Qué tipo de producto te interesa?"
         guardar_sesion(db, sesion, "BROWSING", {})
-        return catalogo
+        return respuesta
     
     # Procesamiento con OpenAI para extraer productos
     if sesion.estado in ["INITIAL", "BROWSING"] or any(word in mensaje_lower for word in ["quiero", "necesito", "comprar", "llevar"]):
@@ -277,11 +295,9 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: s
             productos_lista = "\n".join([f"- {prod.nombre} (ID: {prod.id}, Precio: ${prod.precio})" for prod in productos])
             
             prompt = f"""
-            Eres un AGENTE DE VENTAS PROFESIONAL especializado en tecnología Apple para Sintestesia, una tienda premium de tecnología.
+            Eres un asistente de ventas multitienda. Atiendes en nombre de {store_info['name']}, una tienda especializada en {store_info['type']}. Tu misión es ayudar al cliente a comprar de forma sencilla y agradable.
             
-            CONTEXTO: El cliente está interactuando contigo a través de WhatsApp para obtener asesoría personalizada.
-            
-            PRODUCTOS DISPONIBLES EN INVENTARIO:
+            PRODUCTOS DISPONIBLES EN {store_info['name']}:
             {productos_lista}
             
             MENSAJE DEL CLIENTE: "{mensaje}"
@@ -289,15 +305,15 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: s
             ANÁLISIS REQUERIDO:
             1. Si menciona un producto ESPECÍFICO de la lista → marca "comprar"
             2. Si consulta es GENERAL ("quiero comprar algo", "qué tienes") → marca "consulta_general"  
-            3. Si pide algo que NO existe → marca "no_disponible"
+            3. Si pide algo que NO existe en {store_info['name']} → marca "no_disponible"
             4. Si hace preguntas sobre productos → marca "consulta"
             
-            REGLAS CRÍTICAS:
-            - NUNCA inventes productos no listados
+            REGLAS:
+            - NUNCA inventes productos no listados en {store_info['name']}
             - Solo usa nombres EXACTOS del inventario
-            - Para consultas generales NO asumas qué quiere
+            - Si no existe, informa que no lo tienes y sugiere un producto similar de {store_info['type']}
             
-            RESPUESTA JSON OBLIGATORIA:
+            RESPUESTA JSON:
             {{
                 "productos": [
                     {{"id": <id_producto>, "nombre": "<nombre_exacto>", "cantidad": <cantidad>, "precio": <precio>}}
@@ -334,82 +350,23 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: s
                             "cantidad": item["cantidad"]
                         }
                 elif result["intencion"] == "consulta_general":
-                    # Para consultas generales, preguntar qué busca específicamente
-                    try:
-                        prompt_consulta = f"""
-                        Eres un agente de ventas profesional de Sintestesia, tienda premium de tecnología Apple.
-                        
-                        PRODUCTOS DISPONIBLES: {', '.join([f"{prod.nombre} (${prod.precio})" for prod in productos])}
-                        
-                        CLIENTE ESCRIBIÓ: "{mensaje}"
-                        
-                        INSTRUCCIONES:
-                        - Pregunta qué tipo de producto específico busca
-                        - Sé profesional y consultivo
-                        - Ayúdalo a encontrar lo que necesita con preguntas específicas
-                        - Máximo 120 caracteres
-                        
-                        EJEMPLOS:
-                        "¿Qué tipo de dispositivo necesitas? ¿iPhone para comunicación, Mac para trabajo o iPad para entretenimiento?"
-                        """
-                        
-                        response_ai = client.chat.completions.create(
-                            model="gpt-4o-mini",
-                            messages=[{"role": "user", "content": prompt_consulta}],
-                            temperature=0.4,
-                            max_tokens=60
-                        )
-                        
-                        return response_ai.choices[0].message.content.strip()
-                        
-                    except Exception as e:
-                        print(f"Error OpenAI consulta: {e}")
-                        return "¿Qué tipo de producto estás buscando? ¿iPhone, Mac, iPad o accesorios?"
+                    # Para consultas generales, ofrecer las categorías disponibles
+                    categorias = list(set([prod.descripcion.split(' - ')[1] if ' - ' in prod.descripcion else 'General' for prod in productos]))
+                    
+                    respuesta = f"Estas son las categorías de productos que tenemos en {store_info['name']}:\n\n"
+                    for i, categoria in enumerate(categorias, 1):
+                        respuesta += f"{i}. {categoria}\n"
+                    
+                    respuesta += "\n¿Qué tipo de producto te interesa?"
+                    return respuesta
                 
                 elif result["intencion"] == "no_disponible":
-                    # Para consultas generales, preguntar qué producto específico busca
-                    if any(word in mensaje_lower for word in ["quiero", "necesito", "comprar", "producto", "algo"]):
-                        try:
-                            prompt_respuesta = f"""
-                            Eres un agente de ventas profesional especializado en tecnología para Sintestesia, una tienda premium de productos Apple y tecnología.
-                            
-                            MISIÓN: Ser un consultor experto que ayuda a los clientes a encontrar exactamente lo que necesitan.
-                            
-                            PRODUCTOS DISPONIBLES: {', '.join([f"{prod.nombre} (${prod.precio})" for prod in productos])}
-                            
-                            CLIENTE ESCRIBIÓ: "{mensaje}"
-                            
-                            INSTRUCCIONES:
-                            - Si la consulta es muy general (como "quiero comprar un producto"), pregunta QUÉ tipo de producto específico busca
-                            - Sé consultivo y profesional
-                            - Haz preguntas específicas para entender sus necesidades
-                            - NO recomiendes productos sin saber qué busca
-                            - Máximo 100 caracteres para mantener concisión
-                            
-                            EJEMPLOS:
-                            - "¿Qué tipo de producto tecnológico estás buscando? ¿iPhone, Mac, iPad o accesorios?"
-                            - "¿Para qué uso necesitas el equipo? ¿Trabajo, estudio o entretenimiento?"
-                            """
-                            
-                            response_ai = client.chat.completions.create(
-                                model="gpt-4o-mini",
-                                messages=[{"role": "user", "content": prompt_respuesta}],
-                                temperature=0.3,
-                                max_tokens=50
-                            )
-                            
-                            ai_response = response_ai.choices[0].message.content.strip()
-                            return ai_response
-                            
-                        except Exception as e:
-                            print(f"Error OpenAI respuesta: {e}")
+                    # Informar que no se tiene el producto y sugerir similares
+                    return f"""Lo siento, el producto que buscas no está disponible en {store_info['name']}.
                     
-                    return f"""❌ Lo siento, el producto que buscas no está disponible en nuestro catálogo actual.
-                    
-📦 *Productos disponibles en {store_info['name']}:*
-{chr(10).join([f"- {prod.nombre} (${prod.precio:.0f})" for prod in productos])}
+¿Te interesa algún producto similar de {store_info['type']}? 
 
-👉 ¿Te interesa alguno de estos productos?"""
+Escribe "ver catálogo" para conocer nuestros productos disponibles."""
                 else:
                     pedido_detectado = {}
                     
@@ -431,14 +388,11 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: s
                             "cantidad": 1
                         }
                 
-                # Si no encontró nada, mostrar catálogo
+                # Si no encontró nada, pedir más específico
                 if not pedido_detectado:
-                    return f"""🤔 No entendí bien qué producto buscas.
-                    
-📦 *Productos disponibles en {store_info['name']}:*
-{chr(10).join([f"- {prod.nombre} (${prod.precio:.0f})" for prod in productos])}
+                    return f"""No entendí bien qué producto buscas en {store_info['name']}.
 
-👉 ¿Podrías ser más específico sobre qué producto quieres?"""
+¿Podrías ser más específico? Escribe "ver catálogo" para conocer nuestros productos disponibles."""
         else:
             pedido_detectado = {}
         
@@ -495,10 +449,11 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: s
             # Todo el pedido tiene stock suficiente
             total = sum(item["precio"] * item["cantidad"] for item in pedido_validado.values())
             
-            resumen = "🔎 Esto es lo que entendí:\n"
+            resumen = f"Perfecto! He encontrado este producto en {store_info['name']}:\n\n"
             for item in pedido_validado.values():
-                resumen += f"{item['cantidad']} x {item['nombre']}\n"
-            resumen += f"Total: ${total:.0f}\n👉 ¿Confirmas tu pedido? (sí o no)"
+                resumen += f"• {item['nombre']} - ${item['precio']:.0f}\n"
+                resumen += f"  Cantidad: {item['cantidad']}\n"
+            resumen += f"\n**Total: ${total:.0f}**\n\n¿Deseas confirmar la compra? Responde SÍ para confirmar o NO para cancelar."
             
             guardar_sesion(db, sesion, "ORDER_CONFIRMATION", {"pedido": pedido_validado, "total": total})
             return resumen
@@ -604,27 +559,22 @@ Cuando termines el pago, escribe *pagado* para confirmar."""
             
         elif any(word in mensaje_lower for word in ["no", "cancelar", "cancel"]):
             guardar_sesion(db, sesion, "INITIAL", {})
-            return "❌ Pedido cancelado.\n" + menu_principal()
+            return f"Pedido cancelado. ¿Hay algo más en lo que pueda ayudarte en {store_info['name']}?"
     
-    # Otras opciones del menú
-    if mensaje_lower == "2":
-        return "📞 Para hablar con un ejecutivo, puedes llamarnos al +56 9 1234 5678\n\n" + menu_principal()
-    
-    if mensaje_lower == "3":
-        return "🐛 Para reportar un problema, envía un email a soporte@empresa.com\n\n" + menu_principal()
-    
-    if mensaje_lower == "4":
+    # Consulta estado de pedido
+    if mensaje_lower in ["mi pedido", "estado pedido", "pedido", "mis pedidos"]:
         pedidos = db.query(FlowPedido).filter_by(telefono=telefono, tenant_id=sesion.tenant_id).all()
         if pedidos:
-            respuesta = f"📋 Tus pedidos en {store_info['name']}:\n\n"
+            respuesta = f"Estos son tus pedidos en {store_info['name']}:\n\n"
             for pedido in pedidos[-3:]:  # Últimos 3 pedidos
-                estado_emoji = {"pendiente_pago": "⏳", "pagado": "✅", "cancelado": "❌"}
-                respuesta += f"{estado_emoji.get(pedido.estado, '❓')} Pedido #{pedido.id}\n"
-                respuesta += f"   Total: ${pedido.total:.0f} - {pedido.estado.title()}\n"
-                respuesta += f"   Fecha: {pedido.created_at.strftime('%d/%m/%Y')}\n\n"
-            return respuesta + menu_principal()
+                estado_emoji = {"pendiente_pago": "⏳ Pendiente de pago", "pagado": "✅ Pagado", "cancelado": "❌ Cancelado"}
+                respuesta += f"Pedido #{pedido.id}\n"
+                respuesta += f"Estado: {estado_emoji.get(pedido.estado, '❓ ' + pedido.estado)}\n"
+                respuesta += f"Total: ${pedido.total:.0f}\n"
+                respuesta += f"Fecha: {pedido.created_at.strftime('%d/%m/%Y')}\n\n"
+            return respuesta
         else:
-            return f"No tienes pedidos registrados en {store_info['name']}.\n\n" + menu_principal()
+            return f"No tienes pedidos registrados en {store_info['name']}."
     
-    # Respuesta por defecto mejorada
-    return f"🤖 {store_info['name']} - Asistente Virtual\n\n📱 Recibí: \"{mensaje}\"\n\n💡 Puedo ayudarte con:\n• Ver catálogo de productos\n• Procesar pedidos\n• Consultar estado de compras\n• Información general\n\n" + menu_principal()
+    # Respuesta por defecto - mantener concisa según el prompt
+    return f"No entendí tu mensaje. ¿Puedes ser más específico sobre qué necesitas en {store_info['name']}? Puedes escribir 'ver catálogo' o el nombre de algún producto."

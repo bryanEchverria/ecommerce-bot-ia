@@ -17,6 +17,13 @@ from services.backoffice_integration import (
 )
 from datetime import datetime
 
+# Smart flows integration
+try:
+    from services.smart_flows import detectar_intencion_con_gpt, ejecutar_flujo_inteligente
+    SMART_FLOWS_AVAILABLE = True
+except ImportError:
+    SMART_FLOWS_AVAILABLE = False
+
 # OpenAI integration (if available)
 try:
     import openai
@@ -138,6 +145,82 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: s
     
     mensaje_lower = mensaje.lower().strip()
     
+    # ========================================
+    # PRIORIDAD ABSOLUTA: CONFIRMACIÓN DE PEDIDOS
+    # ========================================
+    if sesion.estado == "ORDER_CONFIRMATION":
+        print(f"⚠️ Estado ORDER_CONFIRMATION detectado, mensaje: '{mensaje}'")
+        if any(word in mensaje_lower for word in ["sí", "si", "yes", "confirmo", "ok", "acepto"]):
+            print(f"✅ Confirmación detectada!")
+            datos = json.loads(sesion.datos)
+            pedido_data = datos["pedido"]
+            total = datos["total"]
+            
+            # Obtener datos del tenant para el pedido
+            productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono)
+            
+            # Crear pedido en BD
+            pedido = FlowPedido(
+                telefono=telefono,
+                tenant_id=tenant_id,
+                total=total,
+                estado="pendiente_pago"
+            )
+            db.add(pedido)
+            db.commit()
+            db.refresh(pedido)
+            
+            # Crear productos del pedido y actualizar stock en tiempo real
+            for prod_id, item in pedido_data.items():
+                # Actualizar stock en la tabla products del backoffice
+                stock_actualizado = update_product_stock(db, prod_id, item["cantidad"], tenant_id)
+                if not stock_actualizado:
+                    return f"❌ Error: No hay suficiente stock de {item['nombre']}. Intenta con menos cantidad."
+                
+                producto_pedido = FlowProductoPedido(
+                    pedido_id=pedido.id,
+                    producto_id=prod_id,  # Usar string ID del backoffice
+                    cantidad=item["cantidad"],
+                    precio_unitario=item["precio"]
+                )
+                db.add(producto_pedido)
+            
+            db.commit()
+            
+            # Crear orden de pago en Flow
+            descripcion = f"Pedido_{client_info['name']}_{pedido.id}"
+            url_pago = crear_orden_flow(str(pedido.id), int(total), descripcion, tenant_id, db)
+            
+            # Preparar resumen del pedido con formato mejorado
+            resumen_productos = ""
+            for item in pedido_data.values():
+                precio_formateado = format_price(item['precio'] * item['cantidad'], tenant_info['currency'])
+                resumen_productos += f"• {item['cantidad']} x {item['nombre']} = {precio_formateado}\n"
+            
+            total_formateado = format_price(total, tenant_info['currency'])
+            respuesta = f"""🎉 **¡Pedido confirmado!** #{pedido.id}
+
+🛒 **Tu compra:**
+{resumen_productos}
+💰 **Total: {total_formateado}**
+
+💳 **Para completar tu pedido:**
+👉 Haz clic aquí para pagar: {url_pago}
+
+⏰ **Después del pago:**
+Escribe *"pagado"* y verificaremos tu pago automáticamente."""
+            
+            guardar_sesion(db, sesion, "ORDER_SCHEDULING", {"pedido_id": pedido.id})
+            return respuesta
+            
+        elif any(word in mensaje_lower for word in ["no", "cancelar", "cancel"]):
+            guardar_sesion(db, sesion, "INITIAL", {})
+            return "❌ **Pedido cancelado**\n\n¿En qué más puedo ayudarte?"
+        
+        # Si escribe algo diferente durante la confirmación
+        else:
+            return f"❓ No entendí tu respuesta.\n\n⚡ **Responde claramente:**\n• **SÍ** - para confirmar el pedido\n• **NO** - para cancelar\n\n🔄 ¿Confirmas tu pedido?"
+    
     # Verificar pedido pendiente de pago
     pedido_pendiente = db.query(FlowPedido).filter_by(
         telefono=telefono,
@@ -169,11 +252,50 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: s
             productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono)
             return "No tienes pedidos pendientes para cancelar.\n" + menu_principal(client_info, productos)
     
-    # Saludos
+    # ========================================
+    # PRIORIDAD 2: SISTEMA DE FLUJOS INTELIGENTES  
+    # ========================================
+    if SMART_FLOWS_AVAILABLE and OPENAI_AVAILABLE:
+        try:
+            print(f"🧠 Iniciando detección inteligente para: '{mensaje}'")
+            
+            # Obtener productos para el contexto
+            productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono)
+            
+            if productos:
+                # GPT detecta la intención específica
+                deteccion = detectar_intencion_con_gpt(mensaje, productos)
+                print(f"🎯 GPT detectó: {deteccion}")
+                
+                # Ejecutar flujo específico según detección
+                if deteccion["intencion"] in ["consulta_producto", "consulta_categoria", "consulta_catalogo", "intencion_compra"]:
+                    print(f"✅ Ejecutando flujo específico para: {deteccion['intencion']}")
+                    
+                    respuesta_inteligente = ejecutar_flujo_inteligente(deteccion, productos, tenant_info)
+                    print(f"📝 Respuesta generada: {len(respuesta_inteligente)} caracteres")
+                    
+                    # Actualizar sesión según el tipo de consulta
+                    if deteccion["intencion"] in ["consulta_categoria", "consulta_catalogo"]:
+                        guardar_sesion(db, sesion, "BROWSING", {})
+                    elif deteccion["intencion"] == "intencion_compra":
+                        # No actualizar sesión aquí, se maneja en la lógica de compras más abajo
+                        pass
+                    
+                    print("🎉 Flujo inteligente completado exitosamente")
+                    return respuesta_inteligente
+                    
+        except Exception as e:
+            print(f"❌ Error en flujos inteligentes: {e}")
+            import traceback
+            traceback.print_exc()
+    
+    # Saludos - Nuevo prompt: Solo saludo, NO mostrar catálogo
     if any(word in mensaje_lower for word in ["hola", "hi", "hello", "buenas", "menu", "inicio"]):
         guardar_sesion(db, sesion, "INITIAL", {})
         productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono)
-        return client_info["greeting"] + "\n\n" + menu_principal(client_info, productos)
+        # Obtener nombre de tienda dinámicamente
+        tienda_nombre = tenant_info.get('name', client_info.get('name', 'nuestra tienda'))
+        return f"¡Hola! Soy tu asistente de ventas de {tienda_nombre}. ¿En qué puedo ayudarte hoy?"
     
     # Ver catálogo - Expandir palabras clave
     catalog_keywords = ["1", "ver catalogo", "ver catálogo", "productos", "catalog", "que productos tienes", 
@@ -182,15 +304,30 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: s
     
     if any(keyword in mensaje_lower for keyword in catalog_keywords) or mensaje_lower in catalog_keywords:
         productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono)
-        catalogo = f"🌿 *{client_info['name']} - Catálogo disponible:*\n\n"
-        for i, prod in enumerate(productos, 1):
-            stock_status = "✅ Disponible" if prod['stock'] > 5 else f"⚠️ Quedan {prod['stock']}"
-            precio_formateado = format_price(prod['price'], tenant_info['currency'])
-            catalogo += f"{i}. **{prod['name']}** - {precio_formateado}\n"
-            catalogo += f"   {prod['description']}\n"
-            catalogo += f"   {stock_status}\n\n"
-        catalogo += "💬 *Para comprar:* Escribe el nombre del producto que quieres\n"
-        catalogo += "📝 *Ejemplo:* 'Quiero Blue Dream' o solo 'Blue Dream'"
+        tienda_nombre = tenant_info.get('name', client_info.get('name', 'nuestra tienda'))
+        
+        if not productos:
+            return "Lo siento, no tenemos productos disponibles en este momento."
+        
+        # Obtener categorías únicas basadas en los nombres de productos
+        categorias = set()
+        for prod in productos:
+            if 'aceite' in prod['name'].lower() or 'cbd' in prod['name'].lower():
+                categorias.add('Aceites y CBD')
+            elif 'semilla' in prod['name'].lower() or 'auto' in prod['name'].lower():
+                categorias.add('Semillas')
+            elif any(word in prod['name'].lower() for word in ['flores', 'northern', 'kush', 'dream']):
+                categorias.add('Flores')
+            elif any(word in prod['name'].lower() for word in ['brownie', 'comestible', 'gummy']):
+                categorias.add('Comestibles')
+            else:
+                categorias.add('Accesorios')
+        
+        catalogo = f"Estas son nuestras categorías disponibles en {tienda_nombre}:\n\n"
+        for i, categoria in enumerate(sorted(categorias), 1):
+            catalogo += f"{i}. {categoria}\n"
+        
+        catalogo += "\n¿Qué tipo de producto te interesa?"
         guardar_sesion(db, sesion, "BROWSING", {})
         return catalogo
     
@@ -300,74 +437,6 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: s
         elif any(word in mensaje_lower for word in ["quiero", "necesito", "comprar"]):
             return f"🔍 No encontré ese producto específico.\n\n💡 **Escribe '1' para ver todo el catálogo** o dime exactamente qué producto buscas.\n\nEjemplo: 'Blue Dream' o 'iPhone'"
     
-    # Confirmación de pedido
-    if sesion.estado == "ORDER_CONFIRMATION":
-        if any(word in mensaje_lower for word in ["sí", "si", "yes", "confirmo", "ok", "acepto"]):
-            datos = json.loads(sesion.datos)
-            pedido_data = datos["pedido"]
-            total = datos["total"]
-            
-            # Crear pedido en BD
-            pedido = FlowPedido(
-                telefono=telefono,
-                tenant_id=tenant_id,
-                total=total,
-                estado="pendiente_pago"
-            )
-            db.add(pedido)
-            db.commit()
-            db.refresh(pedido)
-            
-            # Crear productos del pedido y actualizar stock en tiempo real
-            for prod_id, item in pedido_data.items():
-                # Actualizar stock en la tabla products del backoffice
-                stock_actualizado = update_product_stock(db, prod_id, item["cantidad"], tenant_id)
-                if not stock_actualizado:
-                    return f"❌ Error: No hay suficiente stock de {item['nombre']}. Intenta con menos cantidad."
-                
-                producto_pedido = FlowProductoPedido(
-                    pedido_id=pedido.id,
-                    producto_id=prod_id,  # Usar string ID del backoffice
-                    cantidad=item["cantidad"],
-                    precio_unitario=item["precio"]
-                )
-                db.add(producto_pedido)
-            
-            db.commit()
-            
-            # Crear orden de pago en Flow
-            descripcion = f"Pedido_{client_info['name']}_{pedido.id}"
-            url_pago = crear_orden_flow(str(pedido.id), int(total), descripcion, tenant_id, db)
-            
-            # Preparar resumen del pedido con formato mejorado
-            resumen_productos = ""
-            for item in pedido_data.values():
-                precio_formateado = format_price(item['precio'] * item['cantidad'], tenant_info['currency'])
-                resumen_productos += f"• {item['cantidad']} x {item['nombre']} = {precio_formateado}\n"
-            
-            total_formateado = format_price(total, tenant_info['currency'])
-            respuesta = f"""🎉 **¡Pedido confirmado!** #{pedido.id}
-
-🛒 **Tu compra:**
-{resumen_productos}
-💰 **Total: {total_formateado}**
-
-💳 **Para completar tu pedido:**
-👉 Haz clic aquí para pagar: {url_pago}
-
-⏰ **Después del pago:**
-Escribe *"pagado"* y verificaremos tu pago automáticamente."""
-            
-            guardar_sesion(db, sesion, "ORDER_SCHEDULING", {"pedido_id": pedido.id})
-            return respuesta
-            
-        elif any(word in mensaje_lower for word in ["no", "cancelar", "cancel"]):
-            guardar_sesion(db, sesion, "INITIAL", {})
-            return "❌ **Pedido cancelado**\n\n" + menu_principal()
-        
-        # Si escribe algo diferente durante la confirmación
-        else:
-            return f"❓ No entendí tu respuesta.\n\n⚡ **Responde claramente:**\n• **SÍ** - para confirmar el pedido\n• **NO** - para cancelar\n\n🔄 ¿Confirmas tu pedido?"
     
     # Otras opciones del menú
     if mensaje_lower == "2":

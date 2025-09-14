@@ -28,35 +28,23 @@ if OPENAI_AVAILABLE:
 
 # Multi-tenant client mapping with database IDs
 TENANT_CLIENTS = {
-    "+3456789012": {
-        "name": "Sintestesia",
-        "type": "electronics",
-        "client_id": "2ae13937-cbaa-45c5-b7bc-9c73586483de",
-        "greeting": "¡Hola! Bienvenido a Sintestesia 📱💻\nTu tienda de tecnología favorita."
+    "+56999888777": {
+        "name": "ACME Cannabis Store",
+        "type": "productos",
+        "client_id": "acme-cannabis-2024",
+        "greeting": "¡Hola! Bienvenido a ACME Cannabis Store."
     },
-    "+1234567890": {
-        "name": "Demo Company", 
-        "type": "electronics",
-        "client_id": "11111111-1111-1111-1111-111111111111",
-        "greeting": "¡Hola! Demo Company - Electrónicos 📱💻"
-    },
-    "+5678901234": {
-        "name": "Mundo Canino",
-        "type": "pets",
-        "client_id": "22222222-2222-2222-2222-222222222222", 
-        "greeting": "¡Hola! Mundo Canino - Productos para mascotas 🐕"
-    },
-    "+9876543210": {
-        "name": "Test Store",
-        "type": "clothing",
-        "client_id": "33333333-3333-3333-3333-333333333333",
-        "greeting": "¡Hola! Test Store - Ropa y accesorios 👕"
+    "+56999111222": {
+        "name": "ACME Cannabis Store",
+        "type": "productos", 
+        "client_id": "acme-cannabis-2024",
+        "greeting": "¡Hola! Bienvenido a ACME Cannabis Store."
     },
     "+56950915617": {
-        "name": "Sintestesia",
-        "type": "electronics",
-        "client_id": "2ae13937-cbaa-45c5-b7bc-9c73586483de",
-        "greeting": "¡Hola! Bienvenido a Sintestesia 📱💻\nTu tienda de tecnología favorita."
+        "name": "ACME Cannabis Store",
+        "type": "productos",
+        "client_id": "acme-cannabis-2024",
+        "greeting": "¡Hola! Bienvenido a ACME Cannabis Store."
     }
 }
 
@@ -296,27 +284,9 @@ async def procesar_mensaje(db, telefono: str, mensaje: str) -> str:
 
 💡 Ahora uso OpenAI + BD para respuestas inteligentes """
 
-    # Handle greetings
+    # Handle greetings - Nuevo prompt multitienda
     if any(word in mensaje_lower for word in ["hola", "hi", "hello", "buenas"]):
-        # Get some featured products for greeting
-        try:
-            if client_info.get("client_id"):
-                featured_products = await get_client_products(client_info["client_id"], limit=3)
-                if featured_products:
-                    product_list = "\n".join([f"• {p['name']}: ${p['price']:,}" for p in featured_products])
-                    return f"""{client_info['greeting']}
-
-🔥 Productos destacados:
-{product_list}
-
-💡 ¿Qué estás buscando hoy?"""
-        except Exception as e:
-            print(f"Error getting featured products: {e}")
-        
-        return f"""{client_info['greeting']}
-
-💡 Puedes preguntarme por productos o escribir lo que buscas.
-Ejemplo: "vaporizador", "iPhone", "collar para perro", etc."""
+        return f"¡Hola! Soy tu asistente de ventas de {client_info['name']}. ¿En qué puedo ayudarte hoy?"
 
     # Get user session for purchase flow
     user_session = get_user_session(telefono)

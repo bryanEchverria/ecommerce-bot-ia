@@ -17,12 +17,12 @@ except ImportError:
     get_tenant_id = None
     get_cache_stats = None
 
-# Import Flow chat service with proper order processing
+# Import chat service - temporary force to use chat_service for testing
 try:
-    from services.flow_chat_service import procesar_mensaje_flow as procesar_mensaje
+    from services.chat_service import procesar_mensaje
 except ImportError:
     try:
-        from services.chat_service import procesar_mensaje
+        from services.flow_chat_service import procesar_mensaje_flow as procesar_mensaje
     except ImportError:
         procesar_mensaje = None
 
@@ -49,15 +49,23 @@ async def process_chat_message(data: ChatMessage, db: AsyncSession = Depends(get
         
         tenant_id = get_tenant_id()
         
-        # Procesar mensaje con el servicio de chat Flow (sync)
-        # Convertir AsyncSession a Session para Flow service
-        from database import SessionLocal
-        sync_db = SessionLocal()
+        # Procesar mensaje con el servicio de chat (async compatible)
         try:
-            # Pass tenant_id to the processing function
-            respuesta = procesar_mensaje(sync_db, data.telefono, data.mensaje, tenant_id)
-        finally:
-            sync_db.close()
+            # Check if it's the async version (chat_service)
+            import inspect
+            if inspect.iscoroutinefunction(procesar_mensaje):
+                respuesta = await procesar_mensaje(db, data.telefono, data.mensaje)
+            else:
+                # Sync version (flow_chat_service) 
+                from database import SessionLocal
+                sync_db = SessionLocal()
+                try:
+                    respuesta = procesar_mensaje(sync_db, data.telefono, data.mensaje, tenant_id)
+                finally:
+                    sync_db.close()
+        except Exception as e:
+            print(f"Error in procesar_mensaje: {e}")
+            respuesta = f"Error procesando mensaje: {str(e)}"
         return {
             "telefono": data.telefono,
             "mensaje_usuario": data.mensaje,
