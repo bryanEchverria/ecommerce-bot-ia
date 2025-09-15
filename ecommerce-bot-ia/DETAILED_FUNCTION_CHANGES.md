@@ -1,7 +1,7 @@
 # 📋 DETALLE COMPLETO DE CAMBIOS EN FUNCIONES
 
 ## Fecha: 2025-09-14
-## Versión: v2.0 - Sistema inteligente completo
+## Versión: v2.1 - Asistente de ventas con prompt profesional
 
 ---
 
@@ -225,3 +225,71 @@ ALTER COLUMN producto_id TYPE text;
 - Base de datos optimizada
 
 **Resultado:** Bot completamente funcional e inteligente 🚀
+
+---
+
+## 🆕 ACTUALIZACIÓN v2.1 - CAMBIOS TÉCNICOS PROMPT GPT
+
+### 📝 FUNCIÓN MODIFICADA: `detectar_intencion_con_gpt()`
+
+**Archivo**: `/app/services/smart_flows.py`
+
+**Cambios principales:**
+```python
+# ANTES - Prompt básico
+prompt = f"Analiza este mensaje del cliente y detecta exactamente qué quiere..."
+
+# DESPUÉS - Prompt estructurado profesional
+prompt = f"""
+Eres un asistente de ventas inteligente que trabaja para distintas tiendas...
+[6 reglas específicas de comportamiento]
+"""
+```
+
+**Nuevas funcionalidades agregadas:**
+1. **Contexto enriquecido**: Productos + categorías automáticas + precios
+2. **Respuesta sugerida**: GPT proporciona respuesta directa además de JSON
+3. **Categorización automática**: flores, semillas, aceites, comestibles, accesorios
+4. **Prompt estructurado**: 6 reglas específicas para comportamiento profesional
+
+### 📝 FUNCIÓN MODIFICADA: `ejecutar_flujo_inteligente()`
+
+**Cambios técnicos:**
+```python
+# AGREGADO - Uso de respuesta sugerida por GPT
+if deteccion['intencion'] == 'saludo' and deteccion.get('respuesta_sugerida'):
+    return deteccion['respuesta_sugerida']
+
+# AGREGADO - Respuestas inteligentes para compras
+if deteccion.get('respuesta_sugerida') and deteccion['producto_mencionado']:
+    return deteccion['respuesta_sugerida']
+```
+
+**Nueva lógica:**
+- Prioriza respuestas sugeridas por GPT cuando están disponibles
+- Mantiene fallbacks para casos no cubiertos
+- Integra cálculos automáticos de subtotales
+
+### 📊 MÉTRICAS TÉCNICAS v2.1
+
+| Funcionalidad | Implementación Anterior | Nueva Implementación |
+|---------------|------------------------|---------------------|
+| Prompt GPT | 8 líneas básicas | 25+ líneas estructuradas con 6 reglas |
+| Contexto productos | Solo nombres | Nombres + precios + categorías |
+| Respuesta JSON | 4 campos | 6 campos + respuesta_sugerida |
+| Categorización | Manual | Automática con keywords |
+| Flujo de compra | Detección básica | Cálculo automático + confirmación |
+
+### 🔧 ARCHIVOS TÉCNICOS ACTUALIZADOS
+
+```
+smart_flows.py
+├── detectar_intencion_con_gpt() - REESCRITA COMPLETAMENTE
+├── ejecutar_flujo_inteligente() - MEJORADA
+└── Contexto de productos - ENRIQUECIDO
+
+flow_chat_service.py
+└── Integración sin cambios (usando smart_flows actualizado)
+```
+
+**Resultado técnico:** Sistema de conversación natural con GPT profesional 🎯
