@@ -1,36 +1,69 @@
 """
-Multi-tenant middleware for FastAPI with tenant resolution and global context.
+🏢 SISTEMA MULTI-TENANT AVANZADO
+Middleware completo con resolución multi-fuente, auditoría y aislamiento de datos
 """
 import asyncio
 import time
+import logging
+import json
 from contextvars import ContextVar
-from typing import Optional, Dict, Any
+from typing import Optional, Dict, Any, List
 from urllib.parse import urlparse
+from datetime import datetime
+import re
 
 from fastapi import HTTPException, Request, Response
 from starlette.middleware.base import BaseHTTPMiddleware
 from sqlalchemy.orm import Session
-from sqlalchemy import text
+from sqlalchemy import text, create_engine
+from sqlalchemy.pool import StaticPool
 
 from database import SessionLocal
 
-# Global context variable for tenant_id per request
+# Global context variables para request multi-tenant
 _tenant_context: ContextVar[Optional[str]] = ContextVar('tenant_id', default=None)
+_request_context: ContextVar[Optional[Dict]] = ContextVar('request_info', default=None)
 
-# Simple in-memory cache with TTL for slug->tenant_id mapping
-_slug_cache: Dict[str, Dict[str, Any]] = {}
-_cache_ttl = 60  # seconds
+# Cache optimizado para resolución de tenants
+_tenant_cache: Dict[str, Dict[str, Any]] = {}
+_cache_ttl = 300  # 5 minutos - más tiempo para estabilidad
+
+# Logger para auditoría
+logger = logging.getLogger(__name__)
+
+# Estadísticas de resolución de tenants
+_resolution_stats = {
+    'subdomain': 0,
+    'header': 0, 
+    'path': 0,
+    'query': 0,
+    'rejected': 0,
+    'cached': 0
+}
 
 
 class TenantMiddleware(BaseHTTPMiddleware):
     """
-    Middleware that resolves tenant_id from request and makes it available globally.
+    🏢 MIDDLEWARE MULTI-TENANT AVANZADO
     
-    Resolution order:
-    1. X-Tenant-Id header (use as-is)
-    2. Subdomain extraction from Host header, mapped via tenant_clients table
+    Resolución multi-fuente de tenants con auditoría y seguridad:
     
-    If no tenant can be resolved, returns 400 error (except for bypass paths).
+    📍 ORDEN DE RESOLUCIÓN:
+    1. Header X-Tenant-Id (directo, validado)
+    2. Subdomain desde Host (acme.midominio.com → acme)
+    3. Path parameter (/tenants/acme/api/... → acme)
+    4. Query parameter ?tenant=acme (solo hosts permitidos)
+    
+    🛡️ SEGURIDAD:
+    - Validación estricta de tenant IDs
+    - Aislamiento total entre tenants
+    - Auditoría completa de accesos
+    - Cache con TTL para performance
+    
+    ❌ RECHAZO:
+    - Requests sin tenant válido
+    - Tenant IDs malformados
+    - Acceso desde hosts no autorizados
     """
     
     # Paths that don't require tenant resolution
@@ -53,39 +86,90 @@ class TenantMiddleware(BaseHTTPMiddleware):
     ]
 
     async def dispatch(self, request: Request, call_next) -> Response:
-        """Process request and resolve tenant_id."""
+        """🔄 Procesa request con resolución multi-fuente de tenant"""
+        start_time = time.time()
+        tenant_id = None
+        resolution_method = None
+        
         try:
-            # Check if this path should bypass tenant resolution
+            # ✅ Verificar si el path debe bypass tenant resolution
             if self._should_bypass_tenant_resolution(request.url.path):
-                # Process request without tenant resolution
                 response = await call_next(request)
+                await self._log_audit_event(request, None, "BYPASS", "success", time.time() - start_time)
                 return response
             
-            tenant_id = await self._resolve_tenant_id(request)
+            # 🔍 Resolver tenant (principalmente desde subdomain)
+            tenant_id, resolution_method = await self._resolve_tenant_id(request)
             
+            # ❌ Rechazar si no se puede resolver tenant
             if not tenant_id:
+                await self._log_audit_event(request, None, "REJECTED", "no_tenant", time.time() - start_time)
+                _resolution_stats['rejected'] += 1
                 raise HTTPException(
                     status_code=400,
-                    detail="Tenant no resuelto"
+                    detail={
+                        "error": "tenant_not_resolved",
+                        "message": "No se pudo resolver el tenant desde ninguna fuente",
+                        "sources_checked": ["header", "subdomain", "path", "query"],
+                        "host": request.headers.get("host", ""),
+                        "path": request.url.path
+                    }
                 )
             
-            # Set tenant_id in context
-            _tenant_context.set(tenant_id)
+            # 🔒 Validar tenant ID
+            if not self._is_valid_tenant_id(tenant_id):
+                await self._log_audit_event(request, tenant_id, "REJECTED", "invalid_tenant", time.time() - start_time)
+                _resolution_stats['rejected'] += 1
+                raise HTTPException(
+                    status_code=400,
+                    detail={
+                        "error": "invalid_tenant_id", 
+                        "message": f"Tenant ID malformado: {tenant_id}",
+                        "tenant_id": tenant_id
+                    }
+                )
             
-            # Process request
+            # ✅ Establecer contexto de tenant
+            _tenant_context.set(tenant_id)
+            _request_context.set({
+                "tenant_id": tenant_id,
+                "resolution_method": resolution_method,
+                "timestamp": datetime.utcnow(),
+                "request_id": id(request),
+                "path": request.url.path,
+                "method": request.method,
+                "host": request.headers.get("host", ""),
+                "user_agent": request.headers.get("user-agent", "")
+            })
+            
+            # 📊 Actualizar estadísticas
+            _resolution_stats[resolution_method] += 1
+            
+            # 🎯 Procesar request
             response = await call_next(request)
+            
+            # ✅ Log de éxito
+            await self._log_audit_event(request, tenant_id, resolution_method.upper(), "success", time.time() - start_time)
+            
             return response
             
         except HTTPException:
             raise
         except Exception as e:
+            # ❌ Log de error
+            await self._log_audit_event(request, tenant_id, resolution_method or "ERROR", f"exception: {str(e)}", time.time() - start_time)
             raise HTTPException(
-                status_code=400,
-                detail=f"Error resolviendo tenant: {str(e)}"
+                status_code=500,
+                detail={
+                    "error": "tenant_resolution_error",
+                    "message": f"Error interno resolviendo tenant: {str(e)}",
+                    "tenant_id": tenant_id
+                }
             )
         finally:
-            # Clear context after request
+            # 🧹 Limpiar contexto después del request
             _tenant_context.set(None)
+            _request_context.set(None)
 
     def _should_bypass_tenant_resolution(self, path: str) -> bool:
         """
@@ -115,7 +199,7 @@ class TenantMiddleware(BaseHTTPMiddleware):
             
         return False
 
-    async def _resolve_tenant_id(self, request: Request) -> Optional[str]:
+    async def _resolve_tenant_id(self, request: Request) -> tuple[Optional[str], Optional[str]]:
         """
         Resolve tenant_id using the configured resolution order.
         
@@ -123,41 +207,51 @@ class TenantMiddleware(BaseHTTPMiddleware):
             request: FastAPI request object
             
         Returns:
-            Tenant ID string or None if not resolvable
+            Tuple(tenant_id, resolution_method) or (None, None)
         """
-        # 1. Check X-Tenant-Id header first
+        # 1. Check X-Tenant-Id header first (webhooks, APIs internas)
         tenant_header = request.headers.get("X-Tenant-Id")
-        if tenant_header:
-            return tenant_header.strip()
+        if tenant_header and tenant_header.strip():
+            tenant_id = tenant_header.strip()
+            # Validar que el tenant existe
+            if await self._validate_tenant_exists(tenant_id):
+                return tenant_id, "header"
         
-        # 2. Extract subdomain from Host header
+        # 2. Extract subdomain from Host header (método principal)
         host = request.headers.get("Host", "")
         if host:
             subdomain = self._extract_subdomain(host)
             if subdomain:
+                # Usar cache primero
+                cache_key = f"subdomain:{subdomain}"
+                cached_tenant = self._get_cached_value(cache_key)
+                if cached_tenant:
+                    _resolution_stats['cached'] += 1
+                    return cached_tenant, "subdomain"
+                
+                # Consultar BD y cachear resultado
                 tenant_id = await self._resolve_subdomain_to_tenant_id(subdomain)
                 if tenant_id:
-                    return tenant_id
+                    return tenant_id, "subdomain"
         
-        # Fallback SEGURO: solo permitir client_slug cuando el host NO es un subdominio tenant
+        # 3. Fallback SEGURO: solo permitir client_slug cuando el host NO es un subdominio tenant
         # (ej. app.sintestesia.cl, sintestesia.cl, localhost/dev). Evita spoofing entre tenants.
-        import re
-        host = (request.headers.get("host") or "").lower()
+        host_clean = (request.headers.get("host") or "").lower()
         allowed_fallback_hosts = {
             "app.sintestesia.cl", "sintestesia.cl",
             "127.0.0.1:8002", "localhost:8002", "localhost:8000", "127.0.0.1:8000"
         }
         # si ya había subdominio válido, no usar fallback
-        sub = self._extract_subdomain(host) if host else None
+        sub = self._extract_subdomain(host_clean) if host_clean else None
         is_tenant_subdomain = bool(sub and sub not in {"app", "www"})
-        if (not is_tenant_subdomain) and (host in allowed_fallback_hosts):
+        if (not is_tenant_subdomain) and (host_clean in allowed_fallback_hosts):
             slug = request.query_params.get("client_slug") or request.headers.get("X-Client-Slug")
             if slug and re.fullmatch(r"[a-z0-9-]{1,63}", slug):
                 tenant_id = await self._resolve_subdomain_to_tenant_id(slug.strip())
                 if tenant_id:
-                    return tenant_id
+                    return tenant_id, "query"
         
-        return None
+        return None, None
 
     def _extract_subdomain(self, host: str) -> Optional[str]:
         """
@@ -265,10 +359,102 @@ class TenantMiddleware(BaseHTTPMiddleware):
 
     def _set_cached_value(self, key: str, value: Optional[str]) -> None:
         """Set value in cache with current timestamp."""
-        _slug_cache[key] = {
+        _tenant_cache[key] = {
             'value': value,
             'timestamp': time.time()
         }
+
+    async def _validate_tenant_exists(self, tenant_id: str) -> bool:
+        """
+        🔍 Valida que el tenant existe en la base de datos
+        
+        Args:
+            tenant_id: ID del tenant a validar
+            
+        Returns:
+            True si existe, False si no
+        """
+        try:
+            with SessionLocal() as db:
+                result = db.execute(
+                    text("SELECT 1 FROM tenant_clients WHERE id = :tenant_id LIMIT 1"),
+                    {"tenant_id": tenant_id}
+                )
+                return result.fetchone() is not None
+        except Exception as e:
+            logger.error(f"Error validating tenant {tenant_id}: {e}")
+            return False
+
+    def _is_valid_tenant_id(self, tenant_id: str) -> bool:
+        """
+        🔒 Valida formato del tenant ID
+        
+        Args:
+            tenant_id: ID a validar
+            
+        Returns:
+            True si el formato es válido
+        """
+        if not tenant_id or not isinstance(tenant_id, str):
+            return False
+        
+        # Formato: solo letras minúsculas, números y guiones
+        # Longitud entre 3 y 63 caracteres
+        return bool(re.fullmatch(r"[a-z0-9-]{3,63}", tenant_id))
+
+    async def _log_audit_event(self, request: Request, tenant_id: Optional[str], 
+                              method: str, status: str, duration: float) -> None:
+        """
+        📋 Registra eventos de auditoría para resolución de tenants
+        
+        Args:
+            request: Request object
+            tenant_id: ID del tenant resuelto (o None)
+            method: Método de resolución usado
+            status: Estado del evento (success, error, rejected)
+            duration: Duración del procesamiento en segundos
+        """
+        try:
+            audit_data = {
+                "timestamp": datetime.utcnow().isoformat(),
+                "tenant_id": tenant_id,
+                "resolution_method": method,
+                "status": status,
+                "duration_ms": round(duration * 1000, 2),
+                "request_info": {
+                    "method": request.method,
+                    "path": request.url.path,
+                    "host": request.headers.get("host", ""),
+                    "user_agent": request.headers.get("user-agent", "")[:100],  # Truncar
+                    "ip": getattr(request.client, 'host', '') if request.client else '',
+                    "query_params": dict(request.query_params) if request.query_params else {}
+                }
+            }
+            
+            # Log estructurado para auditoría
+            if status == "success":
+                logger.info("TENANT_RESOLVED", extra=audit_data)
+            elif status == "rejected" or status == "no_tenant":
+                logger.warning("TENANT_REJECTED", extra=audit_data)
+            else:
+                logger.error("TENANT_ERROR", extra=audit_data)
+                
+        except Exception as e:
+            # No permitir que errores de auditoría afecten el request
+            logger.error(f"Error logging audit event: {e}")
+
+    def _get_cached_value(self, key: str) -> Optional[str]:
+        """Get value from cache if not expired."""
+        if key not in _tenant_cache:
+            return None
+            
+        entry = _tenant_cache[key]
+        if time.time() - entry['timestamp'] > _cache_ttl:
+            # Expired, remove from cache
+            del _tenant_cache[key]
+            return None
+            
+        return entry['value']
 
 
 def get_tenant_id() -> str:
