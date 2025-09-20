@@ -1,0 +1,112 @@
+# System files
+.DS_Store
+.vscode/
+.idea/
+*.swp
+*.swo
+.bash_history
+.lesshst
+.viminfo
+.wget-hsts
+.profile
+.bashrc
+.gitconfig
+
+# Node modules and dependencies
+node_modules/
+*/node_modules/
+.npm/
+package-lock.json
+
+# Python
+__pycache__/
+*.pyc
+*.pyo
+*.pyd
+.Python
+env/
+venv/
+.env
+*.egg-info/
+
+# Local development
+.cache/
+.config/
+.local/
+.ssh/
+.dotnet/
+.vscode-server/
+.claude/
+.claude.json
+.claude.json.backup
+
+# Logs
+*.log
+logs/
+app.log
+
+# Database files
+*.db
+*.sqlite
+*.sqlite3
+
+# Environment files
+.env
+.env.local
+.env.production
+
+# Docker
+.docker-compose.yml.swp
+.docker-compose.yml.swo
+
+# OS generated files
+Thumbs.db
+ehthumbs.db
+
+# IDE
+*.swp
+*.swo
+*~
+
+# Temporary files
+cookies.txt
+token.txt
+webhook_token.txt
+
+# Virtual environments
+twilio_env/
+*/venv/
+*/env/
+
+# Ecommerce Platform specific
+# Backend files
+backend/token.txt
+backend/webhook_token.txt
+backend/login_response.json
+backend/webhook_login.json
+backend/*.pid
+backend/uvicorn.log
+backend/server.log
+backend/backend.log
+
+# Database data
+postgres-data/
+ecommerce-bot-ia/postgres-data/
+
+# WhatsApp Bot
+whatsapp-bot-fastapi/settings.py.local
+
+# Frontend build
+frontend/dist/
+frontend/node_modules/
+
+# Legacy files (opcional)
+# legacy/
+
+# Scripts outputs
+scripts/**/*.log
+scripts/**/*.out
+
+# Testing outputs
+tests/**/*.log
+tests/**/*.json
