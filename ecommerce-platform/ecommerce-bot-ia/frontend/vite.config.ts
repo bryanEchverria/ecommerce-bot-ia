@@ -17,6 +17,16 @@ export default defineConfig(({ mode }) => {
       },
       preview: {
         allowedHosts: ['acme.sintestesia.cl', 'bravo.sintestesia.cl', 'app.sintestesia.cl', 'sintestesia.cl']
+      },
+      build: {
+        rollupOptions: {
+          output: {
+            // Cambiar nombres de archivos para forzar recarga sin caché
+            entryFileNames: `assets/[name]-fixed-[hash].js`,
+            chunkFileNames: `assets/[name]-fixed-[hash].js`, 
+            assetFileNames: `assets/[name]-fixed-[hash].[ext]`
+          }
+        }
       }
     };
 });

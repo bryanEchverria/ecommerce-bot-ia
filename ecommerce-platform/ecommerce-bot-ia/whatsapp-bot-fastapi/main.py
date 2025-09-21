@@ -83,8 +83,10 @@ async def webhook(data: WebhookMessage):
     For backwards compatibility only - use tenant-specific endpoints instead
     """
     try:
-        # Process message using AI service
-        response = await procesar_mensaje(data.telefono, data.mensaje)
+        # Process message using AI service with default tenant
+        # For backoffice testing, use default tenant (acme-cannabis-2024)
+        default_tenant_id = "acme-cannabis-2024"
+        response = await procesar_mensaje(data.telefono, data.mensaje, default_tenant_id)
         
         return {
             "telefono": data.telefono,

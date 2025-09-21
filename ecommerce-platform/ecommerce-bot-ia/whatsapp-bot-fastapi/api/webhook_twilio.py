@@ -322,28 +322,15 @@ def truncate_response_for_whatsapp(response_text: str, original_message: str, te
     # Detectar si es consulta de categoría específica
     message_lower = original_message.lower()
     
-    # Detectar consultas de categoría específica de forma dinámica
-    category_keywords = {
-        "semillas": ["semilla", "semillas", "seeds"],
-        "aceites": ["aceite", "aceites", "oil", "cbd", "thc"], 
-        "flores": ["flores", "flower", "flor", "bud", "cogollos"],
-        "comestibles": ["comestibles", "brownie", "chocolate", "galletas", "edibles"],
-        "accesorios": ["accesorio", "accesorios", "grinder", "bong", "papel", "accessories"],
-        "gaming": ["gaming", "consola", "gpu", "cpu", "juegos", "games"],
-        "tecnologia": ["tech", "tecnologia", "electronico", "computer"],
-        "mascotas": ["mascotas", "perro", "gato", "pet", "animal", "comida"]
-    }
+    # LÓGICA HARDCODEADA ELIMINADA - AHORA USA GPT INTELIGENTE
+    # La clasificación por categorías se maneja en ai_improvements.py con GPT
     
     category_keyword = ""
     detected_category = ""
     
-    for category, keywords in category_keywords.items():
-        if any(keyword in message_lower for keyword in keywords):
-            category_keyword = keywords[0]  # Use first keyword as search term
-            detected_category = category
-            break
-    
-    if category_keyword:
+    # Esta lógica hardcodeada se reemplazó por clasificación GPT inteligente
+    # TODO: Eliminar este bloque completo una vez confirmado que funciona
+    if False:  # Deshabilitado
         
         # Extraer solo productos de la categoría solicitada
         lines = response_text.split('\n')

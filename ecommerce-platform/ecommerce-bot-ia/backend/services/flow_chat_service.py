@@ -198,6 +198,7 @@ def obtener_productos(db: Session, tenant_id: str = None):
     return obtener_productos_disponibles(db, tenant_id)
 
 def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: str = None) -> str:
+    print(f"🌟🌟🌟 BACKEND FLOW EJECUTANDOSE: {mensaje} 🌟🌟🌟")
     """
     Procesa mensajes con lógica de Flow integrada - Prompt multitienda
     Compatible con sistema multi-tenant

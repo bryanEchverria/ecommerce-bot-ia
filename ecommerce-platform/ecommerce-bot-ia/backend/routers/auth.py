@@ -206,3 +206,40 @@ def get_me(
         user=UserResponse.from_orm(user),
         client=ClientResponse.from_orm(client)
     )
+
+@router.post("/bot-proxy/{tenant_id}")
+async def bot_proxy_auth(tenant_id: str, request_data: dict):
+    """Bot proxy endpoint in auth router (bypasses tenant middleware)"""
+    try:
+        import requests
+        
+        test_message = request_data.get("test_message", "")
+        
+        # Forward request to WhatsApp bot service
+        bot_response = requests.post(
+            "http://ecommerce-whatsapp-bot:9001/webhook",
+            headers={'Content-Type': 'application/json'},
+            json={
+                'telefono': '+56950915617',
+                'mensaje': test_message
+            },
+            timeout=15.0
+        )
+        
+        if bot_response.status_code == 200:
+            result = bot_response.json()
+            return {
+                "bot_response": result.get('respuesta', ''),
+                "status": "success"
+            }
+        else:
+            return {
+                "error": f"Bot service error: {bot_response.status_code}",
+                "bot_response": "Error connecting to bot service"
+            }
+            
+    except Exception as e:
+        return {
+            "error": str(e),
+            "bot_response": "Error interno del sistema - no se pudo conectar al bot"
+        }

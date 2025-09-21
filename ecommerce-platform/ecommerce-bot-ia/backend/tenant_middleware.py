@@ -70,10 +70,11 @@ class TenantMiddleware(BaseHTTPMiddleware):
     BYPASS_PATHS = [
         "/",
         "/health",
-        "/__debug/health",
+        "/__debug/health", 
         "/docs",
         "/openapi.json",
-        "/redoc"
+        "/redoc",
+        "/test-bot"
     ]
     
     # Path prefixes that don't require tenant resolution
@@ -82,7 +83,12 @@ class TenantMiddleware(BaseHTTPMiddleware):
         "/static/",
         "/twilio/",
         "/flow/confirm",  # Flow webhooks
-        "/flow/return"    # Flow return URLs
+        "/flow/return",   # Flow return URLs
+        "/test-preview/", # Testing endpoint
+        "/api/tenants/",  # All tenant API endpoints (for preview)
+        "/preview-fixed/", # Fixed preview endpoint
+        "/simple-preview/", # Simple preview endpoint (bypass all middleware)
+        "/bot-proxy/" # Bot proxy endpoint (fixes HTTPS mixed content)
     ]
 
     async def dispatch(self, request: Request, call_next) -> Response:

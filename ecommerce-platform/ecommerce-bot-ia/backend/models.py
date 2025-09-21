@@ -1,9 +1,10 @@
-from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, Text, Index, LargeBinary, UniqueConstraint, func
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy import Column, Integer, String, Float, DateTime, Boolean, ForeignKey, Text, Index, LargeBinary, UniqueConstraint, func, Enum
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from database import Base
 from datetime import datetime
 import uuid
+import enum
 
 class Product(Base):
     __tablename__ = "products"
@@ -197,4 +198,60 @@ class FlowAccount(Base):
     
     __table_args__ = (
         UniqueConstraint("tenant_id", name="ux_flow_accounts_tenant"),
+    )
+
+
+class PromptAction(enum.Enum):
+    """Enum para acciones de auditoría de prompts"""
+    CREATE = "CREATE"
+    UPDATE = "UPDATE"
+    ROLLBACK = "ROLLBACK"
+    DEACTIVATE = "DEACTIVATE"
+
+
+class TenantPrompts(Base):
+    """Configuración de prompts y parámetros de AI por tenant"""
+    __tablename__ = "tenant_prompts"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String, ForeignKey("tenant_clients.id", ondelete="CASCADE"), nullable=False, index=True)
+    system_prompt = Column(Text, nullable=False)
+    style_overrides = Column(JSONB, nullable=False, server_default="'{}'::jsonb")
+    nlu_params = Column(JSONB, nullable=False, server_default="'{}'::jsonb")
+    nlg_params = Column(JSONB, nullable=False, server_default="'{}'::jsonb")
+    version = Column(Integer, nullable=False, default=1)
+    is_active = Column(Boolean, nullable=False, default=True)
+    updated_by = Column(String, nullable=False)  # User ID who made the change
+    created_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    updated_at = Column(DateTime, nullable=False, default=datetime.utcnow, onupdate=datetime.utcnow)
+    
+    __table_args__ = (
+        Index('idx_tenant_prompts_tenant_active', 'tenant_id', 'is_active', 
+              unique=True, postgresql_where='is_active = true'),
+        Index('idx_tenant_prompts_tenant_id', 'tenant_id'),
+        UniqueConstraint('tenant_id', 'version', name='ux_tenant_prompts_tenant_version'),
+    )
+
+
+class TenantPromptAuditLog(Base):
+    """Log de auditoría para cambios en configuración de prompts"""
+    __tablename__ = "tenant_prompt_audit_log"
+    
+    id = Column(String, primary_key=True, default=lambda: str(uuid.uuid4()))
+    tenant_id = Column(String, ForeignKey("tenant_clients.id", ondelete="CASCADE"), nullable=False, index=True)
+    prompt_config_id = Column(String, ForeignKey("tenant_prompts.id"), nullable=False)
+    action = Column(Enum(PromptAction), nullable=False)
+    changes_diff = Column(JSONB, nullable=False, server_default="'{}'::jsonb")
+    previous_version = Column(Integer, nullable=True)
+    new_version = Column(Integer, nullable=True)
+    performed_by = Column(String, nullable=False)  # User ID
+    performed_at = Column(DateTime, nullable=False, default=datetime.utcnow)
+    ip_address = Column(String, nullable=True)
+    user_agent = Column(String, nullable=True)
+    
+    __table_args__ = (
+        Index('idx_audit_log_tenant_id', 'tenant_id'),
+        Index('idx_audit_log_performed_at', 'performed_at'),
+        Index('idx_audit_log_action', 'action'),
+        Index('idx_audit_log_config_id', 'prompt_config_id'),
     )

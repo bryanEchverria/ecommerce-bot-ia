@@ -1,7 +1,7 @@
 
 import React from 'react';
 import { useMatch, useNavigate } from 'react-router-dom';
-import { HomeIcon, PackageIcon, ShoppingCartIcon, ZapIcon, MegaphoneIcon, PercentIcon, UsersIcon, WhatsAppIcon, PhoneIcon, CreditCardIcon, SettingsIcon } from './Icons';
+import { HomeIcon, PackageIcon, ShoppingCartIcon, ZapIcon, MegaphoneIcon, PercentIcon, UsersIcon, WhatsAppIcon, PhoneIcon, CreditCardIcon, SettingsIcon, BotIcon } from './Icons';
 import { useTranslation } from 'react-i18next';
 
 const NavItem: React.FC<{ to: string; children: React.ReactNode; }> = ({ to, children }) => {
@@ -71,6 +71,10 @@ const Sidebar: React.FC = () => {
           <NavItem to="/twilio-settings">
             <PhoneIcon className="h-5 w-5 mr-4" />
             <span>Twilio</span>
+          </NavItem>
+          <NavItem to="/bot-config">
+            <BotIcon className="h-5 w-5 mr-4" />
+            <span>Configuración Bot</span>
           </NavItem>
           <NavItem to="/admin">
             <SettingsIcon className="h-5 w-5 mr-4" />

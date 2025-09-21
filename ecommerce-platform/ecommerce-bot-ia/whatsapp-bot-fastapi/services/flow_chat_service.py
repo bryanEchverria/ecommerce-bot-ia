@@ -24,10 +24,10 @@ try:
 except ImportError:
     SMART_FLOWS_AVAILABLE = False
 
-# AI Improvements integration
+# AI Improvements integration (TEMPORALMENTE DESHABILITADO)
 try:
     from services.ai_improvements import process_message_with_ai_improvements
-    AI_IMPROVEMENTS_AVAILABLE = True
+    AI_IMPROVEMENTS_AVAILABLE = False  # Force disable para que smart_flows funcione
 except ImportError:
     AI_IMPROVEMENTS_AVAILABLE = False
 
@@ -65,12 +65,6 @@ TENANT_CLIENTS = {
         "client_id": "test_store",
         "greeting": "👕 ¡Hola! Test Store - Moda y estilo"
     },
-    "+56950915617": {
-        "name": "Green House",
-        "type": "cannabis", 
-        "client_id": "green_house",
-        "greeting": "🌿 ¡Hola! Bienvenido a Green House\nEspecialistas en productos canábicos premium."
-    }
 }
 
 def menu_principal(client_info, productos):
@@ -129,6 +123,7 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: s
     Procesa mensajes con lógica de Flow integrada
     Multi-tenant compatible - consulta productos reales del backoffice
     """
+    print(f"🚀🚀🚀 ENTRANDO A PROCESAR_MENSAJE_FLOW: '{mensaje}' para tenant: {tenant_id}")
     # Si se proporciona tenant_id directamente (webhooks dinámicos), usarlo
     # Si no, obtener información del tenant basado en el teléfono (DINÁMICO)
     if tenant_id is None:
@@ -261,55 +256,15 @@ Escribe *"pagado"* y verificaremos tu pago automáticamente."""
             db.commit()
             guardar_sesion(db, sesion, "INITIAL", {})
             productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono, tenant_id)
-            return f"❌ Tu pedido #{pedido_pendiente.id} ha sido *cancelado*.\n" + menu_principal(client_info, productos)
+            return f"❌ Tu pedido #{pedido_pendiente.id} ha sido *cancelado*.\n" + menu_principal(tenant_info, productos)
         else:
             productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono, tenant_id)
-            return "No tienes pedidos pendientes para cancelar.\n" + menu_principal(client_info, productos)
+            return "No tienes pedidos pendientes para cancelar.\n" + menu_principal(tenant_info, productos)
     
     # ========================================
-    # PRIORIDAD 1.5: DETECCIÓN DE CATEGORÍAS EN COMPRA
+    # ELIMINADA DETECCIÓN HARDCODEADA - AHORA TODO ES DINÁMICO CON GPT
+    # El sistema GPT completamente dinámico maneja todas las intenciones
     # ========================================
-    purchase_intent_words = ["quiero", "necesito", "comprar", "llevar", "dame", "vendeme"]
-    has_purchase_intent = any(word in mensaje_lower for word in purchase_intent_words)
-    
-    if has_purchase_intent and sesion.estado in ["INITIAL", "BROWSING"]:
-        productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono, tenant_id)
-        
-        # Extraer categorías dinámicas de productos reales
-        categorias_disponibles = set()
-        alias_categorias = {}
-        
-        for prod in productos:
-            categoria = prod.get('category', '').lower()
-            if categoria and categoria != '':
-                categorias_disponibles.add(categoria)
-                
-                # Agregar alias comunes basados en nombres de productos
-                if categoria not in alias_categorias:
-                    alias_categorias[categoria] = set([categoria])
-                
-                # Extraer palabras del nombre para crear alias
-                nombre_lower = prod['name'].lower()
-                palabras_producto = nombre_lower.split()
-                for palabra in palabras_producto:
-                    if len(palabra) > 3:  # Solo palabras significativas
-                        alias_categorias[categoria].add(palabra)
-        
-        # DETECTAR INTENCIÓN DE COMPRA POR CATEGORÍA
-        mensaje_words = mensaje_lower.split()
-        categoria_detectada = None
-        
-        # Buscar si menciona alguna categoría o alias
-        for categoria, aliases in alias_categorias.items():
-            if any(alias in mensaje_words for alias in aliases):
-                categoria_detectada = categoria
-                break
-        
-        # Si detectó una categoría, ejecutar consulta de categoría
-        if categoria_detectada:
-            from services.smart_flows import ejecutar_consulta_categoria
-            print(f"🏷️ Categoría detectada en compra: '{categoria_detectada}'")
-            return ejecutar_consulta_categoria(categoria_detectada, productos, tenant_info)
 
     # ========================================
     # PRIORIDAD 2: SISTEMA DE IA MEJORADO CON CONTEXTO  
@@ -329,8 +284,8 @@ Escribe *"pagado"* y verificaremos tu pago automáticamente."""
                 
                 print(f"✅ IA Mejorada respondió (confianza: {metadata_ia.get('intent_confidence', 0):.2f}, tiempo: {metadata_ia.get('response_time_ms', 0)}ms)")
                 
-                # Si la confianza es alta, usar la respuesta de IA
-                if metadata_ia.get('intent_confidence', 0) > 0.7:
+                # Si la confianza es alta, usar la respuesta de IA (umbral reducido para testing)
+                if metadata_ia.get('intent_confidence', 0) > 0.3:
                     return respuesta_ia
                 
                 # Si la confianza es media, continuar con smart flows como backup
@@ -347,6 +302,16 @@ Escribe *"pagado"* y verificaremos tu pago automáticamente."""
         try:
             print(f"🧠 Iniciando detección inteligente para: '{mensaje}'")
             
+            # MANEJO DINÁMICO DE CONTEXTO DE CONVERSACIÓN USANDO GPT
+            # GPT decide si el mensaje es una continuación de conversación basándose en el contexto
+            contexto_conversacion = _manejar_contexto_dinamico_con_gpt(
+                db, sesion, mensaje, datos_sesion, telefono, tenant_id
+            )
+            
+            if contexto_conversacion:
+                print(f"🔄 GPT detectó continuación de conversación: {contexto_conversacion['accion']}")
+                return contexto_conversacion['respuesta']
+            
             # Obtener productos para el contexto
             productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono, tenant_id)
             
@@ -356,14 +321,23 @@ Escribe *"pagado"* y verificaremos tu pago automáticamente."""
                 print(f"🎯 GPT detectó: {deteccion}")
                 
                 # Ejecutar flujo específico según detección
-                if deteccion["intencion"] in ["consulta_producto", "consulta_categoria", "consulta_catalogo", "intencion_compra"]:
+                if deteccion["intencion"] in ["saludo", "consulta_producto", "consulta_categoria", "consulta_catalogo", "intencion_compra"]:
                     print(f"✅ Ejecutando flujo específico para: {deteccion['intencion']}")
                     
+                    print(f"🚀 Ejecutando flujo inteligente para: {deteccion['intencion']}")
                     respuesta_inteligente = ejecutar_flujo_inteligente(deteccion, productos, tenant_info)
+                    print(f"✅ Flujo inteligente retornó: {respuesta_inteligente[:100]}...")
                     print(f"📝 Respuesta generada: {len(respuesta_inteligente)} caracteres")
                     
                     # Actualizar sesión según el tipo de consulta
-                    if deteccion["intencion"] in ["consulta_categoria", "consulta_catalogo"]:
+                    if deteccion["intencion"] == "consulta_categoria":
+                        # Guardar la categoría consultada para mantener contexto
+                        categoria_consultada = deteccion.get("categoria")
+                        if categoria_consultada:
+                            guardar_sesion(db, sesion, "BROWSING", {"ultima_categoria": categoria_consultada})
+                        else:
+                            guardar_sesion(db, sesion, "BROWSING", {})
+                    elif deteccion["intencion"] == "consulta_catalogo":
                         guardar_sesion(db, sesion, "BROWSING", {})
                     elif deteccion["intencion"] == "intencion_compra":
                         # No actualizar sesión aquí, se maneja en la lógica de compras más abajo
@@ -377,226 +351,145 @@ Escribe *"pagado"* y verificaremos tu pago automáticamente."""
             import traceback
             traceback.print_exc()
     
-    # Saludos - Nuevo prompt: Solo saludo, NO mostrar catálogo
-    if any(word in mensaje_lower for word in ["hola", "hi", "hello", "buenas", "menu", "inicio"]):
-        guardar_sesion(db, sesion, "INITIAL", {})
-        productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono, tenant_id)
-        # Obtener nombre de tienda dinámicamente
-        tienda_nombre = tenant_info.get('name', client_info.get('name', 'nuestra tienda'))
-        return f"¡Hola! Soy tu asistente de ventas de {tienda_nombre}. ¿En qué puedo ayudarte hoy?"
+    # SOLO SISTEMA GPT - Sin condiciones hardcodeadas
+    # El sistema GPT debe manejar todos los casos: saludos, consultas de productos, etc.
     
-    # Ver catálogo - Expandir palabras clave
-    catalog_keywords = ["1", "ver catalogo", "ver catálogo", "productos", "catalog", "que productos tienes", 
-                       "que tienes", "stock", "dame el catalogo", "dame el catálogo", "catalogo de semillas",
-                       "catálogo de semillas", "mostrar productos", "lista de productos", "semillas disponibles"]
+    # Si llegamos aquí, el sistema GPT no manejó el mensaje, usar fallback GPT
     
-    if any(keyword in mensaje_lower for keyword in catalog_keywords) or mensaje_lower in catalog_keywords:
-        productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono, tenant_id)
-        tienda_nombre = tenant_info.get('name', client_info.get('name', 'nuestra tienda'))
-        
-        if not productos:
-            return "Lo siento, no tenemos productos disponibles en este momento."
-        
-        # Obtener categorías únicas basadas en los nombres de productos
-        categorias = set()
-        for prod in productos:
-            if 'aceite' in prod['name'].lower() or 'cbd' in prod['name'].lower():
-                categorias.add('Aceites y CBD')
-            elif 'semilla' in prod['name'].lower() or 'auto' in prod['name'].lower():
-                categorias.add('Semillas')
-            elif any(word in prod['name'].lower() for word in ['flores', 'northern', 'kush', 'dream']):
-                categorias.add('Flores')
-            elif any(word in prod['name'].lower() for word in ['brownie', 'comestible', 'gummy']):
-                categorias.add('Comestibles')
-            else:
-                categorias.add('Accesorios')
-        
-        catalogo = f"Estas son nuestras categorías disponibles en {tienda_nombre}:\n\n"
-        for i, categoria in enumerate(sorted(categorias), 1):
-            catalogo += f"{i}. {categoria}\n"
-        
-        catalogo += "\n¿Qué tipo de producto te interesa?"
-        guardar_sesion(db, sesion, "BROWSING", {})
-        return catalogo
+    # ========================================
+    # SISTEMA DINÁMICO ESCALABLE CON CONFIGURACIÓN DE TENANT
+    # ========================================
     
-    # Preguntas exploratorias por categoría (NO son intención de compra)
-    # Lógica de intención de compra específica movida a PRIORIDAD 1.5 arriba
+    print(f"🔄 Activando sistema dinámico escalable para tenant: {tenant_id}")
     
-    if has_purchase_intent and sesion.estado in ["INITIAL", "BROWSING"]:
+    try:
+        # Importar sistema dinámico
+        from services.dynamic_tenant_bot import process_message_with_dynamic_ai
+        
+        # Obtener productos y información del tenant
         productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono, tenant_id)
         
-        # Extraer categorías dinámicas de productos reales
-        categorias_disponibles = set()
-        alias_categorias = {}
+        # Procesar con IA dinámica personalizada
+        respuesta_dinamica = process_message_with_dynamic_ai(
+            db=db,
+            telefono=telefono,
+            mensaje=mensaje,
+            tenant_id=tenant_id,
+            productos=productos,
+            tenant_info=tenant_info
+        )
         
-        for prod in productos:
-            categoria = prod.get('category', '').lower()
-            if categoria and categoria != '':
-                categorias_disponibles.add(categoria)
-                
-                # Agregar alias comunes basados en nombres de productos
-                nombre_lower = prod['name'].lower()
-                if categoria not in alias_categorias:
-                    alias_categorias[categoria] = set([categoria])
-                
-                # Extraer palabras del nombre para crear alias
-                palabras_producto = nombre_lower.split()
-                for palabra in palabras_producto:
-                    if len(palabra) > 3:  # Solo palabras significativas
-                        alias_categorias[categoria].add(palabra)
+        print(f"✅ Sistema dinámico respondió para {tenant_id}")
+        return respuesta_dinamica
         
-        categorias_dinamicas = '|'.join(sorted(categorias_disponibles))
+    except Exception as e:
+        print(f"❌ Error en sistema dinámico para {tenant_id}: {e}")
+        import traceback
+        traceback.print_exc()
         
-        # DETECTAR INTENCIÓN DE COMPRA POR CATEGORÍA
-        mensaje_words = mensaje_lower.split()
-        categoria_detectada = None
+        # Fallback seguro con información real del tenant
+        productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono, tenant_id)
+        from services.dynamic_tenant_bot import get_dynamic_greeting_with_products
         
-        # Buscar si menciona alguna categoría o alias
-        for categoria, aliases in alias_categorias.items():
-            if any(alias in mensaje_words for alias in aliases):
-                categoria_detectada = categoria
-                break
+        return get_dynamic_greeting_with_products(tenant_info, productos)
+
+def _manejar_contexto_dinamico_con_gpt(db: Session, sesion, mensaje: str, datos_sesion: dict, telefono: str, tenant_id: str):
+    """
+    Maneja el contexto de conversación de manera 100% dinámica usando GPT
+    Sin lógica hardcodeada - GPT decide si el mensaje es una continuación
+    """
+    if not OPENAI_AVAILABLE:
+        return None
+    
+    try:
+        import openai
+        client = openai.OpenAI()
         
-        # Si detectó una categoría, ejecutar consulta de categoría
-        if categoria_detectada:
+        # Obtener información del contexto actual
+        estado_sesion = sesion.estado
+        contexto_anterior = datos_sesion.get('ultima_categoria', '')
+        ultima_respuesta = datos_sesion.get('ultima_respuesta', '')
+        
+        # Solo procesar si hay contexto previo
+        if not contexto_anterior and estado_sesion != "BROWSING":
+            return None
+        
+        # PROMPT DINÁMICO PARA ANÁLISIS DE CONTEXTO
+        contexto_prompt = f"""Analiza si este mensaje continúa una conversación previa.
+
+CONVERSACIÓN PREVIA:
+- Estado: {estado_sesion}
+- Categoría anterior: {contexto_anterior or 'ninguna'}
+- Última respuesta: {ultima_respuesta[:100] if ultima_respuesta else 'ninguna'}
+
+MENSAJE ACTUAL: "{mensaje}"
+
+TAREA: ¿Es este mensaje una continuación de la conversación anterior?
+
+ANÁLISIS:
+- Si el usuario responde afirmativamente → puede ser continuación
+- Si cambia de tema completamente → nueva conversación
+- Si hace seguimiento al tema anterior → continuación
+
+RESPONDE UNA de estas opciones:
+- "continuar_categoria" - continuar con la categoría que se consultó antes
+- "continuar_catalogo" - mostrar catálogo general
+- "nueva_conversacion" - iniciar nueva conversación
+
+RESPUESTA:"""
+
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[{"role": "user", "content": contexto_prompt}],
+            temperature=0.1,
+            max_tokens=20
+        )
+        
+        decision_gpt = response.choices[0].message.content.strip().lower()
+        print(f"🧠 GPT decisión de contexto: '{decision_gpt}'")
+        
+        # Procesar decisión de GPT
+        if decision_gpt == "continuar_categoria" and contexto_anterior:
+            print(f"🔄 GPT: Continuando con categoría '{contexto_anterior}'")
+            
+            # Obtener productos y ejecutar consulta de categoría
+            productos, _, tenant_info = obtener_productos_cliente_real(db, telefono, tenant_id)
             from services.smart_flows import ejecutar_consulta_categoria
-            return ejecutar_consulta_categoria(categoria_detectada, productos, tenant_info)
-        
-        # Si no es categoría, continuar con lógica de productos específicos
-        productos_info = {prod['name'].lower(): {"id": prod['id'], "nombre": prod['name'], "precio": prod['price'], "stock": prod['stock']} 
-                         for prod in productos}
-        
-        # Mejorar detección de productos (incluir palabras parciales)
-        pedido_detectado = {}
-        mensaje_words = mensaje_lower.split()
-        
-        for nombre_prod, info in productos_info.items():
-            prod_words = nombre_prod.split()
-            # Verificar coincidencia completa o parcial
-            if nombre_prod in mensaje_lower or any(word in mensaje_words for word in prod_words):
-                # Extraer cantidad del mensaje
-                cantidad = 1
-                for word in mensaje.split():
-                    if word.isdigit():
-                        cantidad = int(word)
-                        break
-                
-                # Verificar stock disponible
-                if cantidad > info["stock"]:
-                    return f"❌ Lo siento, solo tenemos {info['stock']} unidades de {info['nombre']} disponibles.\n\n¿Quieres esa cantidad? Escribe 'sí' o elige otro producto."
-                
-                pedido_detectado[info["id"]] = {
-                    "nombre": info["nombre"],
-                    "precio": info["precio"],
-                    "cantidad": cantidad
-                }
-        
-        # Si se detectó un producto específico
-        if pedido_detectado:
-            total = sum(item["precio"] * item["cantidad"] for item in pedido_detectado.values())
+            respuesta = ejecutar_consulta_categoria(contexto_anterior, productos, tenant_info)
             
-            resumen = "🛒 **Resumen de tu pedido:**\n\n"
-            for item in pedido_detectado.values():
-                resumen += f"• {item['cantidad']} x {item['nombre']} = ${item['precio'] * item['cantidad']}\n"
-            resumen += f"\n💰 **Total: ${total}**\n\n"
-            resumen += "✅ ¿Confirmas este pedido?\n"
-            resumen += "👉 Responde: **SÍ** para confirmar o **NO** para cancelar"
+            # Mantener contexto
+            guardar_sesion(db, sesion, "BROWSING", {
+                "ultima_categoria": contexto_anterior,
+                "ultima_respuesta": respuesta[:200]
+            })
             
-            guardar_sesion(db, sesion, "ORDER_CONFIRMATION", {"pedido": pedido_detectado, "total": total})
-            return resumen
+            return {
+                "accion": "continuar_categoria",
+                "respuesta": respuesta
+            }
+            
+        elif decision_gpt == "continuar_catalogo":
+            print(f"🔄 GPT: Continuando con catálogo completo")
+            
+            # Mostrar catálogo completo
+            productos, _, tenant_info = obtener_productos_cliente_real(db, telefono, tenant_id)
+            from services.smart_flows import ejecutar_consulta_catalogo
+            respuesta = ejecutar_consulta_catalogo(productos, tenant_info)
+            
+            # Actualizar contexto
+            guardar_sesion(db, sesion, "BROWSING", {
+                "ultima_respuesta": respuesta[:200]
+            })
+            
+            return {
+                "accion": "continuar_catalogo", 
+                "respuesta": respuesta
+            }
         
-        # Si pregunta por recomendaciones
-        elif any(word in mensaje_lower for word in ["recomien", "recomienda", "suger", "cual", "mejor"]):
-            if client_info['type'] == 'cannabis':
-                return f"🌿 **Para principiantes recomiendo:**\n\n• **Blue Dream** (${productos[0].precio}) - Híbrida equilibrada, ideal para comenzar\n• **Northern Lights** (${productos[3].precio}) - Indica suave y relajante\n\n💬 Escribe el nombre del que te interesa para comprarlo"
-            else:
-                return f"📱 **Productos más populares:**\n\n• **{productos[0].nombre}** (${productos[0].precio})\n• **{productos[1].nombre}** (${productos[1].precio})\n\n💬 Escribe el nombre del que te interesa"
-        
-        # Si no se detectó producto específico pero hay intención de compra
-        elif any(word in mensaje_lower for word in ["quiero", "necesito", "comprar"]):
-            return f"🔍 No encontré ese producto específico.\n\n💡 **Escribe '1' para ver todo el catálogo** o dime exactamente qué producto buscas.\n\nEjemplo: 'Blue Dream' o 'iPhone'"
-    
-    
-    # Otras opciones del menú
-    if mensaje_lower == "2":
-        productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono, tenant_id)
-        return "📞 Para hablar con un ejecutivo, puedes llamarnos al +56 9 1234 5678\n\n" + menu_principal(tenant_info, productos)
-    
-    if mensaje_lower == "3":
-        productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono, tenant_id)
-        return "🐛 Para reportar un problema, envía un email a soporte@empresa.com\n\n" + menu_principal(tenant_info, productos)
-    
-    if mensaje_lower == "4":
-        pedidos = db.query(FlowPedido).filter_by(telefono=telefono, tenant_id=tenant_id).all()
-        if pedidos:
-            respuesta = f"📋 Tus pedidos en {client_info['name']}:\n\n"
-            for pedido in pedidos[-3:]:  # Últimos 3 pedidos
-                estado_emoji = {"pendiente_pago": "⏳", "pagado": "✅", "cancelado": "❌"}
-                respuesta += f"{estado_emoji.get(pedido.estado, '❓')} Pedido #{pedido.id}\n"
-                respuesta += f"   Total: ${pedido.total:.0f} - {pedido.estado.title()}\n"
-                respuesta += f"   Fecha: {pedido.created_at.strftime('%d/%m/%Y')}\n\n"
-            productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono, tenant_id)
-            return respuesta + menu_principal(client_info, productos)
         else:
-            productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono, tenant_id)
-            return f"No tienes pedidos registrados en {client_info['name']}.\n\n" + menu_principal(client_info, productos)
-    
-    # Respuesta por defecto con OpenAI
-    if OPENAI_AVAILABLE:
-        try:
-            client = openai.OpenAI()
-            productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono, tenant_id)
-            productos_info = [f"{prod['name']} (${prod['price']})" for prod in productos]
+            print(f"🔄 GPT: Nueva conversación - no hay continuación")
+            return None
             
-            # Contexto más específico para cada tipo de cliente
-            if client_info['type'] == 'cannabis':
-                contexto = "Especialista en productos canábicos premium. Enfócate en semillas de calidad."
-            else:
-                contexto = f"Especialista en {client_info['type']}."
-            
-            prompt = f"""
-            Eres un {contexto} para {client_info['name']}.
-            
-            PRODUCTOS DISPONIBLES: {', '.join(productos_info)}
-            
-            CLIENTE ESCRIBIÓ: "{mensaje}"
-            
-            INSTRUCCIONES:
-            - Si pregunta por productos específicos, muestra SOLO el que pregunta con precio y descripción
-            - Si ya eligió un producto, NO sugieras otros, pregunta por la cantidad o confirma la compra
-            - Si dice "solo quiero X", respeta su decisión y procede con ESE producto únicamente
-            - Sé directo y conciso, máximo 150 caracteres
-            - NUNCA ignores lo que el cliente dice claramente
-            """
-            
-            response = client.chat.completions.create(
-                model="gpt-3.5-turbo",
-                messages=[{"role": "user", "content": prompt}],
-                max_tokens=100
-            )
-            ai_response = response.choices[0].message.content.strip()
-            productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono, tenant_id)
-            return ai_response + "\n\n" + menu_principal(client_info, productos)
-            
-        except Exception as e:
-            print(f"OpenAI error: {e}")
-    
-    # Fallback inteligente - Si menciona productos, mostrar catálogo directamente
-    if any(word in mensaje_lower for word in ["productos", "product", "catalogo", "catálogo", "semillas", "stock", "tienes", "disponibles"]):
-        productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono, tenant_id)
-        if productos:
-            catalogo = f"🌿 *{client_info['name']} - Catálogo disponible:*\n\n"
-            for i, prod in enumerate(productos, 1):
-                stock_status = "✅ Disponible" if prod['stock'] > 5 else f"⚠️ Quedan {prod['stock']}"
-                precio_formateado = format_price(prod['price'], tenant_info['currency'])
-                catalogo += f"{i}. **{prod['name']}** - {precio_formateado}\n"
-                catalogo += f"   {prod['description']}\n"
-                catalogo += f"   {stock_status}\n\n"
-            catalogo += "💬 *Para comprar:* Escribe el nombre del producto que quieres\n"
-            catalogo += "📝 *Ejemplo:* 'Quiero Northern Lights' o solo 'Northern Lights'"
-            guardar_sesion(db, sesion, "BROWSING", {})
-            return catalogo
-    
-    # Fallback final
-    productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono, tenant_id)
-    return f"🤖 {client_info['name']} - Asistente Virtual\n\n📱 Recibí: \"{mensaje}\"\n\n💡 Puedo ayudarte con:\n• Ver catálogo de productos (escribe '1' o 'productos')\n• Procesar pedidos\n• Consultar estado de compras\n• Información general\n\n" + menu_principal(client_info, productos)
+    except Exception as e:
+        print(f"❌ Error en manejo dinámico de contexto: {e}")
+        return None

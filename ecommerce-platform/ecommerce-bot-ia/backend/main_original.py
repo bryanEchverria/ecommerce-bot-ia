@@ -17,7 +17,7 @@ from routers.flow_integration import router as flow_integration_router
 from routers.payment_methods import router as payment_methods_router
 from routers.debug import router as debug_router
 from routers.admin import router as admin_router
-from routers.ai_analytics import router as ai_analytics_router
+# from routers.ai_analytics import router as ai_analytics_router  # Module not found
 from routers.tenant_prompts import router as tenant_prompts_router
 from tenant_middleware import TenantMiddleware
 
@@ -141,8 +141,8 @@ app.include_router(flow_integration_router, prefix="/api", tags=["flow-integrati
 # Payment methods endpoints (combined Twilio + Flow)
 app.include_router(payment_methods_router, prefix="/api", tags=["payment-methods"])
 
-# AI Analytics endpoints (bot intelligence and training)
-app.include_router(ai_analytics_router, prefix="/api", tags=["ai-analytics"])
+# AI Analytics endpoints (bot intelligence and training) - commented out, module not found
+# app.include_router(ai_analytics_router, prefix="/api", tags=["ai-analytics"])
 
 # Tenant prompts endpoints (multitenant bot configuration)
 app.include_router(tenant_prompts_router, tags=["tenant-prompts"])
@@ -158,55 +158,6 @@ async def root():
 @app.get("/health")
 async def health():
     return {"status": "healthy", "service": "backend"}
-
-@app.get("/test-bot")
-async def test_bot():
-    """Simple test endpoint to verify bot connectivity"""
-    try:
-        import requests
-        response = requests.get("http://ecommerce-whatsapp-bot:9001/health", timeout=5)
-        return {"bot_status": response.status_code, "message": "Bot reachable"}
-    except Exception as e:
-        return {"bot_status": "error", "message": str(e)}
-
-@app.post("/bot-proxy/{tenant_id}")
-async def bot_proxy(tenant_id: str, request_data: dict):
-    """Proxy endpoint to forward requests to WhatsApp bot (fixes HTTPS mixed content)"""
-    try:
-        import requests
-        
-        test_message = request_data.get("test_message", "")
-        
-        # Forward request to WhatsApp bot service with tenant_id
-        bot_response = requests.post(
-            f"http://ecommerce-whatsapp-bot:9001/webhook/twilio/{tenant_id}",
-            headers={'Content-Type': 'application/x-www-form-urlencoded'},
-            data={
-                'From': 'whatsapp:+56950915617',
-                'Body': test_message
-            },
-            timeout=15.0
-        )
-        
-        if bot_response.status_code == 200:
-            result = bot_response.json()
-            return {
-                "bot_response": result.get('respuesta', ''),
-                "status": "success",
-                "phone": result.get('telefono', ''),
-                "message": result.get('mensaje_usuario', '')
-            }
-        else:
-            return {
-                "error": f"Bot service error: {bot_response.status_code}",
-                "bot_response": "Error connecting to bot service"
-            }
-            
-    except Exception as e:
-        return {
-            "error": str(e),
-            "bot_response": "Error interno del sistema - no se pudo conectar al bot"
-        }
 
 if __name__ == "__main__":
     import uvicorn
