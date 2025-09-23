@@ -13,7 +13,7 @@ current_dir = Path(__file__).parent
 services_dir = current_dir / "services"
 sys.path.append(str(services_dir))
 
-from services.chat_service import procesar_mensaje
+from services.chat_service import procesar_mensaje, procesar_mensaje_con_contexto
 from services.health_service import health_check
 from api.webhook_meta import router as meta_webhook_router
 from api.webhook_twilio import router as twilio_webhook_router
@@ -39,6 +39,12 @@ app.include_router(twilio_webhook_router, tags=["twilio-webhook"])
 class WebhookMessage(BaseModel):
     telefono: str
     mensaje: str
+    historial: list = []
+
+class ChatMessage(BaseModel):
+    telefono: str
+    mensaje: str
+    historial: list = []
 
 @app.get("/")
 def home():
@@ -86,7 +92,50 @@ async def webhook(data: WebhookMessage):
         # Process message using AI service with default tenant
         # For backoffice testing, use default tenant (acme-cannabis-2024)
         default_tenant_id = "acme-cannabis-2024"
-        response = await procesar_mensaje(data.telefono, data.mensaje, default_tenant_id)
+        
+        # If history is provided, use contextual processing
+        if data.historial:
+            response = await procesar_mensaje_con_contexto(
+                data.telefono, 
+                data.mensaje, 
+                default_tenant_id, 
+                data.historial
+            )
+        else:
+            response = await procesar_mensaje(data.telefono, data.mensaje, default_tenant_id)
+        
+        return {
+            "telefono": data.telefono,
+            "mensaje_usuario": data.mensaje,
+            "respuesta": response,
+            "status": "success"
+        }
+    except Exception as e:
+        return {
+            "telefono": data.telefono,
+            "mensaje_usuario": data.mensaje,
+            "error": str(e),
+            "status": "error"
+        }
+
+@app.post("/chat")
+async def chat_with_context(data: ChatMessage):
+    """
+    Chat endpoint with conversation history support
+    Used by frontend chat interface for contextual conversations
+    """
+    print(f"🎯 MAIN.PY: /chat endpoint called with message: '{data.mensaje}' and history: {len(data.historial) if data.historial else 0}")
+    try:
+        # Process message using AI service with context
+        default_tenant_id = "acme-cannabis-2024"
+        print(f"🎯 MAIN.PY: Calling procesar_mensaje_con_contexto...")
+        response = await procesar_mensaje_con_contexto(
+            data.telefono, 
+            data.mensaje, 
+            default_tenant_id,
+            data.historial
+        )
+        print(f"🎯 MAIN.PY: Got response: {response[:50]}...")
         
         return {
             "telefono": data.telefono,

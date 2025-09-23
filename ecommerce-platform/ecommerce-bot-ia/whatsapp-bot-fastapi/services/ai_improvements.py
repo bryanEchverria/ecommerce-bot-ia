@@ -466,7 +466,8 @@ Responde SOLO el JSON sin texto adicional."""
         temperature = nlu_params.get("temperature_nlu", 0.3)
         max_tokens = nlu_params.get("max_tokens_nlu", 150)
         
-        response = openai.ChatCompletion.create(
+        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        response = client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": final_system_prompt},
@@ -642,7 +643,8 @@ Genera la respuesta:"""
         temperature = nlg_params.get("temperature_nlg", 0.7)
         max_tokens = nlg_params.get("max_tokens_nlg", 300)
         
-        response = openai.ChatCompletion.create(
+        client = openai.OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        response = client.chat.completions.create(
             model=model,
             messages=[
                 {"role": "system", "content": final_system_prompt},

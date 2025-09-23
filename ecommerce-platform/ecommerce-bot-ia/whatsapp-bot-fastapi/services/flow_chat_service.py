@@ -17,17 +17,17 @@ from services.backoffice_integration import (
 )
 from datetime import datetime
 
-# Smart flows integration
+# Smart flows integration (DESHABILITADO - USAR MOTOR GPT REASONING)
 try:
     from services.smart_flows import detectar_intencion_con_gpt, ejecutar_flujo_inteligente
-    SMART_FLOWS_AVAILABLE = True
+    SMART_FLOWS_AVAILABLE = False  # Forzar deshabilitado para usar motor GPT reasoning
 except ImportError:
     SMART_FLOWS_AVAILABLE = False
 
-# AI Improvements integration (TEMPORALMENTE DESHABILITADO)
+# AI Improvements integration (SIEMPRE ACTIVO)
 try:
-    from services.ai_improvements import process_message_with_ai_improvements
-    AI_IMPROVEMENTS_AVAILABLE = False  # Force disable para que smart_flows funcione
+    from services.ai_improvements import handle_message_with_context
+    AI_IMPROVEMENTS_AVAILABLE = True
 except ImportError:
     AI_IMPROVEMENTS_AVAILABLE = False
 
@@ -78,6 +78,167 @@ def menu_principal(client_info, productos):
     catalogo += "💬 *Para comprar:* Escribe el nombre del producto que quieres\n"
     catalogo += "📝 *Ejemplo:* 'Quiero Northern Lights' o solo 'Northern Lights'"
     return catalogo
+
+def procesar_con_openai_contextual(tenant_id: str, tenant_info: dict, mensaje: str, productos: list, historial: list) -> str:
+    """
+    Sistema 100% dinámico usando OpenAI con contexto conversacional
+    Escalable para cualquier tenant y tipo de negocio
+    """
+    import os
+    from openai import OpenAI
+    
+    # Preparar datos dinámicos del tenant
+    productos_contexto = ""
+    if productos:
+        productos_contexto = "\n".join([
+            f"- {p['name']}: ${p['price']:,} (Stock: {p['stock']}) - {p['description']}"
+            for p in productos  # DINÁMICO: incluye TODOS los productos
+        ])
+    
+    # Preparar historial conversacional
+    historial_contexto = ""
+    if historial:
+        print(f"🔍 Procesando historial: {historial}")
+        for msg in historial[-5:]:
+            for role, content in msg.items():
+                if content:
+                    historial_contexto += f"{role.upper()}: {content}\n"
+        print(f"🔍 Historial formateado: {repr(historial_contexto)}")
+    
+    # Prompt dinámico y escalable
+    system_prompt = f"""Eres el asistente de ventas de {tenant_info['name']}, especializado en {tenant_info['type']}.
+
+DATOS REALES DEL INVENTARIO:
+{productos_contexto}
+
+CONVERSACIÓN PREVIA:
+{historial_contexto}
+
+INSTRUCCIONES:
+1. SIEMPRE usa los precios y stock EXACTOS del inventario
+2. Mantén coherencia con la conversación previa
+3. Responde específicamente sobre productos reales disponibles
+4. Si el cliente ya preguntó algo, no repitas información básica
+5. Sé conversacional y recuerda el contexto
+6. Máximo 300 caracteres para WhatsApp
+
+MENSAJE ACTUAL: "{mensaje}"
+
+Responde como el asistente experto de {tenant_info['name']}:"""
+
+    print(f"🔍 System prompt: {system_prompt[:200]}...")
+    
+    try:
+        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        
+        response = client.chat.completions.create(
+            model="gpt-4o-mini",
+            messages=[
+                {"role": "system", "content": system_prompt},
+                {"role": "user", "content": mensaje}
+            ],
+            max_tokens=300,
+            temperature=0.7
+        )
+        
+        return response.choices[0].message.content.strip()
+        
+    except Exception as e:
+        print(f"🚨 Error OpenAI: {e}")
+        # Fallback dinámico simple
+        return generar_respuesta_fallback_dinamica(tenant_info, mensaje, productos, historial)
+
+def generar_respuesta_fallback_dinamica(tenant_info: dict, mensaje: str, productos: list, historial: list) -> str:
+    """
+    Fallback inteligente y dinámico cuando OpenAI falla
+    Sin hardcodear categorías - usa solo datos reales
+    """
+    mensaje_lower = mensaje.lower()
+    
+    # Analizar si hay contexto previo
+    contexto_previo = any(msg for msg in historial if any(content for content in msg.values()))
+    
+    # Saludo inteligente basado en contexto
+    if any(word in mensaje_lower for word in ["hola", "hello", "hi", "buenas"]):
+        if not contexto_previo:
+            productos_resumen = f"{len(productos)} productos disponibles" if productos else "productos exclusivos"
+            return f"¡Hola! Bienvenido a {tenant_info['name']} 😊 Tenemos {productos_resumen}. ¿En qué puedo ayudarte?"
+        else:
+            return f"¡Hola de nuevo! ¿En qué más puedo ayudarte en {tenant_info['name']}?"
+    
+    # Búsqueda dinámica en productos reales
+    productos_mencionados = []
+    for producto in productos:
+        if any(word in producto['name'].lower() for word in mensaje_lower.split() if len(word) > 2):
+            productos_mencionados.append(producto)
+    
+    if productos_mencionados:
+        producto = productos_mencionados[0]
+        return f"✅ {producto['name']}: ${producto['price']:,} - Stock: {producto['stock']} unidades. {producto['description'][:50]}... ¿Te interesa?"
+    
+    # Consulta de precios dinámica
+    if any(word in mensaje_lower for word in ["precio", "cuesta", "cuánto"]):
+        if productos:
+            producto = productos[0]
+            return f"Te puedo ayudar con precios. Por ejemplo: {producto['name']} cuesta ${producto['price']:,}. ¿Qué producto específico te interesa?"
+    
+    # Respuesta genérica dinámica
+    categorias_detectadas = set()
+    for producto in productos:
+        # Extraer categorías dinámicamente de nombres de productos
+        words = producto['name'].lower().split()
+        for word in words:
+            if len(word) > 4:  # Palabras significativas
+                categorias_detectadas.add(word)
+    
+    if categorias_detectadas:
+        cats_str = ", ".join(list(categorias_detectadas)[:3])
+        return f"En {tenant_info['name']} tenemos: {cats_str} y más. ¿Qué te interesa específicamente?"
+    
+    return f"¡Perfecto! En {tenant_info['name']} puedo ayudarte con nuestros productos. ¿Hay algo específico que buscas?"
+
+def procesar_mensaje_flow_inteligente(db: Session, telefono: str, mensaje: str, tenant_id: str = None, historial: list = None) -> str:
+    """
+    Procesamiento inteligente multi-tenant que SIEMPRE usa IA para tomar decisiones
+    La IA decide automáticamente el flujo apropiado basado en contexto y historial
+    """
+    print(f"🧠 PROCESAMIENTO INTELIGENTE: '{mensaje}' | Tenant: {tenant_id} | Historial: {len(historial) if historial else 0}")
+    
+    # Obtener información dinámica del tenant
+    if tenant_id is None:
+        tenant_id = get_tenant_from_phone(telefono, db)
+    
+    tenant_info = get_tenant_info(tenant_id, db)
+    productos = get_real_products_from_backoffice(db, tenant_id)
+    
+    print(f"🔍 PRODUCTOS CONSULTADOS: {len(productos)} productos encontrados")
+    for i, p in enumerate(productos):
+        if i < 10 or p.get('category', '').lower() == 'semillas':
+            print(f"   {i+1}. {p.get('name', 'Sin nombre')}: ${p.get('price', 0)} | Stock: {p.get('stock', 0)} | Categoría: {p.get('category', 'Sin categoría')}")
+    
+    # Usar historial tal como viene (ya está en formato correcto)
+    ai_history = historial[-5:] if historial else []
+    
+    # Sistema dinámico de IA con contexto
+    print(f"🚀 Procesando con contexto: {len(ai_history)} mensajes previos")
+    
+    try:
+        # Usar OpenAI directamente de forma robusta
+        response = procesar_con_openai_contextual(
+            tenant_id=tenant_id,
+            tenant_info=tenant_info,
+            mensaje=mensaje,
+            productos=productos,
+            historial=ai_history
+        )
+        
+        print(f"✅ IA contextual exitosa: {response[:50]}...")
+        return response
+        
+    except Exception as e:
+        print(f"❌ Error en IA contextual: {e}")
+        # Fallback al procesamiento normal
+        return procesar_mensaje_flow(db, telefono, mensaje, tenant_id)
 
 def obtener_sesion(db: Session, telefono: str, tenant_id: str):
     """Obtiene o crea una sesión para el usuario"""
@@ -298,7 +459,8 @@ Escribe *"pagado"* y verificaremos tu pago automáticamente."""
     # ========================================
     # PRIORIDAD 3: SISTEMA DE FLUJOS INTELIGENTES (FALLBACK)
     # ========================================
-    if SMART_FLOWS_AVAILABLE and OPENAI_AVAILABLE:
+    # SMART FLOWS DESHABILITADO - USAR MOTOR GPT REASONING
+    if False and SMART_FLOWS_AVAILABLE and OPENAI_AVAILABLE:
         try:
             print(f"🧠 Iniciando detección inteligente para: '{mensaje}'")
             
@@ -357,41 +519,45 @@ Escribe *"pagado"* y verificaremos tu pago automáticamente."""
     # Si llegamos aquí, el sistema GPT no manejó el mensaje, usar fallback GPT
     
     # ========================================
-    # SISTEMA DINÁMICO ESCALABLE CON CONFIGURACIÓN DE TENANT
+    # MOTOR DE RAZONAMIENTO GPT 100% DINÁMICO - SIN CONDICIONALES
     # ========================================
     
-    print(f"🔄 Activando sistema dinámico escalable para tenant: {tenant_id}")
+    print(f"🧠 Activando motor de razonamiento GPT puro para tenant: {tenant_id}")
     
     try:
-        # Importar sistema dinámico
-        from services.dynamic_tenant_bot import process_message_with_dynamic_ai
+        # Importar motor de razonamiento GPT
+        from services.gpt_reasoning_engine import process_message_with_pure_gpt_reasoning
         
         # Obtener productos y información del tenant
         productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono, tenant_id)
         
-        # Procesar con IA dinámica personalizada
-        respuesta_dinamica = process_message_with_dynamic_ai(
+        # Procesar con razonamiento GPT puro - SIN CONDICIONALES
+        respuesta_gpt = process_message_with_pure_gpt_reasoning(
             db=db,
             telefono=telefono,
             mensaje=mensaje,
             tenant_id=tenant_id,
-            productos=productos,
-            tenant_info=tenant_info
+            productos=productos
         )
         
-        print(f"✅ Sistema dinámico respondió para {tenant_id}")
-        return respuesta_dinamica
+        print(f"✅ Motor de razonamiento GPT respondió para {tenant_id}")
+        return respuesta_gpt
         
     except Exception as e:
-        print(f"❌ Error en sistema dinámico para {tenant_id}: {e}")
+        print(f"❌ Error en motor de razonamiento GPT para {tenant_id}: {e}")
         import traceback
         traceback.print_exc()
         
-        # Fallback seguro con información real del tenant
+        # Fallback seguro - mínimo procesamiento
         productos, tenant_id, tenant_info = obtener_productos_cliente_real(db, telefono, tenant_id)
-        from services.dynamic_tenant_bot import get_dynamic_greeting_with_products
         
-        return get_dynamic_greeting_with_products(tenant_info, productos)
+        try:
+            from services.tenant_config_manager import get_cached_tenant_config
+            tenant_config = get_cached_tenant_config(db, tenant_id)
+            emoji = " 🤖" if tenant_config.use_emojis else ""
+            return f"¡Hola! Soy el asistente de {tenant_config.business_name}{emoji}. ¿En qué puedo ayudarte?"
+        except:
+            return f"¡Hola! Soy el asistente de {tenant_info.get('name', 'nuestra tienda')}. ¿En qué puedo ayudarte?"
 
 def _manejar_contexto_dinamico_con_gpt(db: Session, sesion, mensaje: str, datos_sesion: dict, telefono: str, tenant_id: str):
     """

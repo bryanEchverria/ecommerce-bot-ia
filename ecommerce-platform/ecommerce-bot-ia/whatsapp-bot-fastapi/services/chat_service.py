@@ -96,6 +96,60 @@ async def process_with_openai(mensaje: str, client_info: Dict) -> str:
         print(f"OpenAI error: {e}")
         return None
 
+async def procesar_mensaje_con_contexto(telefono: str, mensaje: str, tenant_id: str = None, historial: list = None) -> str:
+    """
+    Message processing with conversation history support
+    """
+    print(f"🎯 CONTEXTO: Procesando mensaje '{mensaje}' con historial de {len(historial) if historial else 0} mensajes")
+    try:
+        # Import Flow service and AI improvements
+        import sys
+        import os
+        from pathlib import Path
+        
+        current_dir = Path(__file__).parent
+        app_dir = current_dir.parent
+        sys.path.insert(0, str(current_dir))
+        sys.path.insert(0, str(app_dir))
+        
+        print(f"🔧 About to import flow_chat_service...")
+        from flow_chat_service import procesar_mensaje_flow_inteligente
+        print(f"🔧 About to import database...")
+        from database import SessionLocal
+        print(f"🔧 About to import backoffice_integration...")  
+        from backoffice_integration import get_real_products_from_backoffice, get_tenant_info
+        print(f"🔧 All imports successful!")
+        
+        # Create database session
+        db = SessionLocal()
+        try:
+            # Convert frontend history format to AI format
+            ai_history = []
+            if historial:
+                for msg in historial[-5:]:  # Last 5 messages for context
+                    ai_history.append({
+                        "user" if msg.get("role") == "user" else "bot": msg.get("content", "")
+                    })
+            
+            print(f"🔧 Calling procesar_mensaje_flow_inteligente with {len(ai_history)} history messages...")
+            
+            # Use Flow chat service with intelligence and context
+            response = procesar_mensaje_flow_inteligente(db, telefono, mensaje, tenant_id, ai_history)
+            
+            print(f"🔧 Got response from flow service: {response[:50]}...")
+            
+            return response
+            
+        finally:
+            db.close()
+            
+    except Exception as e:
+        print(f"🚨 ERROR in context processing: {e}")
+        import traceback
+        traceback.print_exc()
+        # Fallback to regular processing
+        return await procesar_mensaje(telefono, mensaje, tenant_id)
+
 async def procesar_mensaje(telefono: str, mensaje: str, tenant_id: str = None) -> str:
     """
     Main message processing function
@@ -113,14 +167,14 @@ async def procesar_mensaje(telefono: str, mensaje: str, tenant_id: str = None) -
         sys.path.insert(0, str(current_dir))
         sys.path.insert(0, str(app_dir))
         
-        from flow_chat_service import procesar_mensaje_flow
+        from flow_chat_service import procesar_mensaje_flow_inteligente
         from database import SessionLocal
         
         # Create database session
         db = SessionLocal()
         try:
-            # Use the integrated Flow chat service
-            response = procesar_mensaje_flow(db, telefono, mensaje, tenant_id)
+            # Use the integrated Flow chat service with intelligence (no context)
+            response = procesar_mensaje_flow_inteligente(db, telefono, mensaje, tenant_id, [])
             return response
         finally:
             db.close()

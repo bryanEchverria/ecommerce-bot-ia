@@ -183,6 +183,13 @@ async def update_tenant_prompt_config(
     
     # Si es actualización parcial, conservar valores actuales
     if current_config:
+        # VALIDACIÓN MULTITENANT: Verificar que la config actual pertenece al tenant
+        if current_config.tenant_id != tenant_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"🚨 SECURITY: Current config tenant mismatch {current_config.tenant_id} != {tenant_id}"
+            )
+        
         for field in ["system_prompt", "style_overrides", "nlu_params", "nlg_params"]:
             if field not in update_data:
                 update_data[field] = getattr(current_config, field)
@@ -400,24 +407,18 @@ async def preview_tenant_prompt_config(
     start_time = time.time()
     
     try:
-        import os
-        from openai import OpenAI
+        # Importar servicios de IA
+        import sys
+        sys.path.append('/root/ecommerce-platform/ecommerce-bot-ia/whatsapp-bot-fastapi')
+        from services.ai_improvements import gpt_detect_intent, gpt_generate_reply
         
         # Extraer configuración
         prompt_config = preview_request.prompt_config.dict() if hasattr(preview_request.prompt_config, "dict") else preview_request.prompt_config
-        system_prompt = prompt_config.get("system_prompt", "")
-        style = prompt_config.get("style_overrides", {})
-        nlg_params = prompt_config.get("nlg_params", {})
         
-        # Obtener productos reales usando LA MISMA FUNCIÓN QUE EL BOT
+        # Obtener productos reales usando LA MISMA QUERY QUE EL BOT
         productos_tenant = []
         if preview_request.include_products and db:
             try:
-                # Importar función del bot que SÍ funciona
-                import sys
-                sys.path.append('/app')
-                
-                # Usar la misma query exacta que el bot de WhatsApp
                 query = text("""
                     SELECT id, name, description, price, stock, status, client_id, category
                     FROM products 
@@ -429,95 +430,79 @@ async def preview_tenant_prompt_config(
                 """)
                 
                 result = db.execute(query, {"tenant_id": tenant_id})
-                productos_tenant = []
                 
                 for row in result:
                     productos_tenant.append({
                         "name": row.name,
                         "description": row.description,
                         "price": row.price,
-                        "stock": row.stock
+                        "stock": row.stock,
+                        "category": row.category,
+                        "client_id": row.client_id
                     })
                 
                 print(f"DEBUG PREVIEW: Encontrados {len(productos_tenant)} productos para tenant {tenant_id}")
             except Exception as e:
                 print(f"ERROR BD PREVIEW: {e}")
                 productos_tenant = []
-        else:
-            print(f"DEBUG PREVIEW: include_products={preview_request.include_products}, db={db is not None}")
         
-        # Crear contexto de productos para GPT (ÚNICO)
-        if productos_tenant:
-            productos_detallados = []
-            for p in productos_tenant:
-                productos_detallados.append(f"PRODUCTO: {p['name']}\nPRECIO: ${p['price']:,} pesos chilenos\nSTOCK: {p['stock']} unidades\nDESCRIPCIÓN: {p['description']}\n")
-            
-            productos_context = "\n".join(productos_detallados)
-            
-            # FLUJO INTELIGENTE: GPT debe usar OBLIGATORIAMENTE datos exactos de BD
-            full_prompt = f"""IMPORTANTE: Eres un sistema de ventas que DEBE usar ÚNICAMENTE los datos de la base de datos oficial. PROHIBIDO usar conocimiento externo.
-
-=== PRODUCTOS DISPONIBLES EN INVENTARIO ===
-{productos_context}
-
-CONSULTA: "{preview_request.test_message}"
-
-REGLAS OBLIGATORIAS (NO OPCIONALES):
-⚠️  SI EL CLIENTE PREGUNTA POR UN PRODUCTO QUE ESTÁ EN LA LISTA: Usar el precio EXACTO mostrado arriba
-⚠️  SI EL CLIENTE PREGUNTA POR UN PRODUCTO NO LISTADO: Responder "No tenemos ese producto disponible"
-⚠️  PROHIBIDO inventar precios o usar conocimiento general sobre productos
-⚠️  PROHIBIDO mencionar rangos de precios genéricos como "$10-$15"
-
-VERIFICACIÓN OBLIGATORIA:
-- Antes de mencionar cualquier precio, verificar que esté en la lista de arriba
-- Solo usar los precios exactos que aparecen después de "PRECIO: $"
-
-EJEMPLO CORRECTO:
-Cliente: "precio white widow"
-Respuesta: "La White Widow cuesta $40,000 pesos chilenos y tenemos 15 unidades disponibles"
-
-TONO: {style.get('tono', 'amigable')}
-EMOJIS: {'Usar emojis' if style.get('usar_emojis', True) else 'Sin emojis'}"""
-        else:
-            skip_gpt = False
-            full_prompt = f"""No hay productos cargados en el sistema de inventario.
-
-PREGUNTA: {preview_request.test_message}
-RESPUESTA: Lo siento, el sistema de inventario está vacío. No puedo consultar productos en este momento."""
-
-        # Llamar a GPT siempre (no hay skip_gpt en preview)
-        client = OpenAI(api_key=os.getenv("OPENAI_API_KEY"))
+        # Obtener información del tenant
+        store_name = tenant.name if tenant else f"Tienda {tenant_id}"
+        categorias_soportadas = ["semillas", "aceites", "flores", "comestibles", "accesorios", "vaporizador"]
         
-        response = client.chat.completions.create(
-            model=nlg_params.get("modelo", "gpt-4o-mini"),
-            messages=[{"role": "user", "content": full_prompt}],
-            temperature=nlg_params.get("temperature_nlg", 0.7),
-            max_tokens=nlg_params.get("max_tokens_nlg", 300)
+        # VALIDACIÓN MULTITENANT: Verificar que todos los productos pertenecen al tenant
+        for producto in productos_tenant:
+            if producto.get("client_id") != tenant_id:
+                raise HTTPException(
+                    status_code=status.HTTP_403_FORBIDDEN,
+                    detail=f"🚨 SECURITY: Product cross-tenant detected {producto.get('client_id')} != {tenant_id}"
+                )
+        
+        # 1. Detectar intención usando el orquestador con validación estricta
+        intent_result = gpt_detect_intent(
+            tenant_id=tenant_id,
+            store_name=store_name,
+            mensaje=preview_request.test_message,
+            history=[],
+            productos=productos_tenant,
+            categorias_soportadas=categorias_soportadas,
+            db=db
         )
         
-        bot_response = response.choices[0].message.content.strip()
+        # Validar que el resultado pertenece al tenant correcto
+        if intent_result.get("tenant_id") != tenant_id:
+            raise HTTPException(
+                status_code=status.HTTP_403_FORBIDDEN,
+                detail=f"🚨 SECURITY: Intent result tenant mismatch"
+            )
         
-        # DEBUG TEMPORAL: Agregar información del prompt para verificar
-        if "debug" in preview_request.test_message.lower():
-            bot_response = f"PRODUCTOS ENCONTRADOS: {len(productos_tenant)}\nPRIMER PRODUCTO: {productos_tenant[0] if productos_tenant else 'NINGUNO'}\nPROMPT: {full_prompt[:500]}...\n\nRESPUESTA: {bot_response}"
-        
-        # Aplicar límite de caracteres estricto
-        limite_chars = style.get("limite_respuesta_caracteres", 300)
-        if len(bot_response) > limite_chars and "DEBUG" not in bot_response:
-            bot_response = bot_response[:limite_chars-3] + "..."
+        # 2. Generar respuesta usando el orquestador con validación estricta
+        respuesta = gpt_generate_reply(
+            tenant_id=tenant_id,
+            store_name=store_name,
+            intent=intent_result,
+            productos=productos_tenant,
+            categorias_soportadas=categorias_soportadas,
+            db=db
+        )
         
         processing_time = int((time.time() - start_time) * 1000)
         
-        return {
-            "bot_response": bot_response,
+        # Preparar métricas
+        metrics = {
             "processing_time_ms": processing_time,
             "tokens_used": {
-                "nlu": 30,
-                "nlg": response.usage.completion_tokens if response.usage else 0
+                "nlu": 50,  # Mock - el orquestador no retorna esto específicamente
+                "nlg": 100  # Mock - se podría calcular si necesario
             },
-            "confidence_score": 0.95 if productos_tenant else 0.70,
-            "detected_intent": "database_query_with_products" if productos_tenant else "general_query",
-            "preview_note": f"Generado con {nlg_params.get('modelo', 'gpt-4o-mini')} - {len(productos_tenant)} productos incluidos"
+            "confidence_score": intent_result.get("confianza", 0.5),
+            "detected_intent": intent_result.get("intencion", "consulta_general"),
+            "preview_note": f"Generado con orquestador IA - {len(productos_tenant)} productos incluidos"
+        }
+        
+        return {
+            "bot_response": respuesta,
+            **metrics
         }
         
     except Exception as e:
@@ -577,11 +562,18 @@ async def rollback_tenant_prompt_config(
             detail="Solo administradores pueden hacer rollback"
         )
     
-    # Buscar la versión objetivo
+    # Buscar la versión objetivo con validación estricta de tenant
     target_config = db.query(TenantPrompts).filter(
         TenantPrompts.tenant_id == tenant_id,
         TenantPrompts.version == rollback_request.target_version
     ).first()
+    
+    # VALIDACIÓN MULTITENANT: Verificar que la config objetivo pertenece al tenant
+    if target_config and target_config.tenant_id != tenant_id:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail=f"🚨 SECURITY: Target config tenant mismatch {target_config.tenant_id} != {tenant_id}"
+        )
     
     if not target_config:
         raise HTTPException(

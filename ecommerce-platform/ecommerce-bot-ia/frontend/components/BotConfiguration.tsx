@@ -1,6 +1,7 @@
 import React, { useState, useEffect } from 'react';
 import { useAuth, ApiClient } from '../auth/AuthContext';
 import { useToast } from './Toast';
+import ChatInterface from './ChatInterface';
 
 interface StyleOverrides {
   tono: string;
@@ -140,6 +141,42 @@ const BotConfiguration: React.FC = () => {
     }
   };
 
+  const handleChatMessage = async (message: string): Promise<string> => {
+    if (!tenantId) {
+      throw new Error('Tenant ID no disponible');
+    }
+    
+    try {
+      // DETECTAR SUBDOMINIO Y USAR ENDPOINT MULTI-TENANT CORRECTO
+      const hostname = window.location.hostname;
+      
+      console.log(`🌐 Hostname: ${hostname}, Testing message: ${message}`);
+      
+      // Usar endpoint multi-tenant específico para cada subdominio
+      const response = await fetch('/bot-proxy/', {
+        method: 'POST',
+        headers: {
+          'Content-Type': 'application/x-www-form-urlencoded',
+          'Host': hostname, // Pasar host header para identificación de tenant
+        },
+        body: new URLSearchParams({
+          From: 'whatsapp:+56950915617',
+          Body: message
+        })
+      });
+
+      if (response.ok) {
+        const result = await response.json();
+        return result.respuesta || 'Sin respuesta del bot';
+      } else {
+        throw new Error(`Error ${response.status}: ${response.statusText}`);
+      }
+    } catch (error: any) {
+      console.error('Error testing configuration:', error);
+      throw new Error(`Error en la prueba: ${error.message}`);
+    }
+  };
+
   const testConfiguration = async () => {
     if (!tenantId) return;
     
@@ -152,32 +189,9 @@ const BotConfiguration: React.FC = () => {
       setTesting(true);
       setTestResult(null);
 
-      // DETECTAR SUBDOMINIO Y USAR ENDPOINT MULTI-TENANT CORRECTO
-      const hostname = window.location.hostname;
-      const subdomain = hostname.split('.')[0];
-      
-      console.log(`🌐 Hostname: ${hostname}, Subdominio: ${subdomain}`);
-      
-      // Usar endpoint multi-tenant específico para cada subdominio
-      const response = await fetch('/bot-proxy/', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/x-www-form-urlencoded',
-          'Host': hostname, // Pasar host header para identificación de tenant
-        },
-        body: new URLSearchParams({
-          From: 'whatsapp:+56950915617',
-          Body: testMessage
-        })
-      });
-
-      if (response.ok) {
-        const result = await response.json();
-        setTestResult(result.respuesta); // Nginx proxy devuelve respuesta directa del bot
-        showToast('Prueba completada exitosamente (datos reales de BD)', 'success');
-      } else {
-        throw new Error(`Error ${response.status}: ${response.statusText}`);
-      }
+      const result = await handleChatMessage(testMessage);
+      setTestResult(result);
+      showToast('Prueba completada exitosamente (datos reales de BD)', 'success');
     } catch (error: any) {
       console.error('Error testing configuration:', error);
       showToast(`Error en la prueba: ${error.message}`, 'error');
@@ -383,33 +397,18 @@ const BotConfiguration: React.FC = () => {
           </div>
         </div>
 
-        {/* Prueba de Configuración */}
+        {/* Interfaz de Chat */}
         <div className="bg-gray-50 dark:bg-gray-800 rounded-lg p-4 mb-6">
           <h3 className="text-lg font-semibold mb-4 text-on-surface-light dark:text-on-surface-dark">
-            🔍 Prueba de Configuración
+            💬 Prueba Interactiva del Bot
           </h3>
-          <div className="flex gap-2 mb-4">
-            <input
-              type="text"
-              value={testMessage}
-              onChange={(e) => setTestMessage(e.target.value)}
-              placeholder="Hola, ¿qué productos tienen disponibles?"
-              className="flex-1 p-2 border border-gray-300 dark:border-gray-600 rounded-lg bg-white dark:bg-gray-800 text-on-surface-light dark:text-on-surface-dark"
-            />
-            <button
-              onClick={testConfiguration}
-              disabled={testing}
-              className="px-4 py-2 bg-blue-600 text-white rounded-lg hover:bg-blue-700 disabled:opacity-50"
-            >
-              {testing ? '🔄' : '🧪'} Probar
-            </button>
-          </div>
-          {testResult && (
-            <div className="bg-white dark:bg-gray-700 p-3 rounded-lg border-l-4 border-blue-500">
-              <h4 className="font-medium mb-2 text-on-surface-light dark:text-on-surface-dark">🤖 Respuesta del Bot:</h4>
-              <p className="text-on-surface-light dark:text-on-surface-dark">{testResult}</p>
-            </div>
-          )}
+          <p className="text-sm text-gray-600 dark:text-gray-400 mb-4">
+            Usa este chat para probar las respuestas del bot con tu configuración actual. Los mensajes se procesan con datos reales de la base de datos.
+          </p>
+          <ChatInterface 
+            onTestMessage={handleChatMessage}
+            className="shadow-sm"
+          />
         </div>
 
         {/* Botones de acción */}

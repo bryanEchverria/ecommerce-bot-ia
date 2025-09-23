@@ -63,11 +63,15 @@ def get_real_products_from_backoffice(db: Session, tenant_id: str):
             ORDER BY name ASC
         """)
         
+        print(f"🔍 SQL QUERY: tenant_id = '{tenant_id}'")
         result = db.execute(query, {"tenant_id": tenant_id})
         products = []
         
+        row_count = 0
+        
         for row in result:
-            products.append({
+            row_count += 1
+            product = {
                 "id": row.id,
                 "name": row.name,
                 "description": row.description or "Sin descripción",
@@ -76,7 +80,12 @@ def get_real_products_from_backoffice(db: Session, tenant_id: str):
                 "status": row.status,
                 "client_id": row.client_id,
                 "category": row.category or "General"
-            })
+            }
+            products.append(product)
+            if row_count <= 5:  # Solo los primeros 5 para debug
+                print(f"   🔍 ROW: {product['name']} | ${product['price']} | {product['category']}")
+        
+        print(f"🔍 TOTAL ROWS: {row_count} productos encontrados")
         
         return products
     except Exception as e:
