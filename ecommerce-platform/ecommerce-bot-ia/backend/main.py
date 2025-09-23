@@ -147,6 +147,39 @@ app.include_router(ai_analytics_router, prefix="/api", tags=["ai-analytics"])
 # Tenant prompts endpoints (multitenant bot configuration)
 app.include_router(tenant_prompts_router, tags=["tenant-prompts"])
 
+# Temporary test endpoint for database queries
+@app.post("/debug/test-db-queries")
+async def debug_test_db_queries(request_data: dict):
+    """Debug endpoint to test database queries"""
+    try:
+        from services.dynamic_database_service import DynamicDatabaseService
+        from prompt_schemas import DatabaseQueries
+        
+        tenant_id = request_data.get("tenant_id", "acme-cannabis-2024")
+        query_name = request_data.get("query_name", "productos")
+        parameters = request_data.get("parameters", {})
+        
+        # Use default queries for testing
+        db_queries = DatabaseQueries()
+        db_service = DynamicDatabaseService(tenant_id)
+        
+        results = db_service.execute_database_queries(db_queries, query_name, parameters)
+        
+        return {
+            "status": "success",
+            "tenant_id": tenant_id,
+            "query_name": query_name,
+            "parameters": parameters,
+            "results_count": len(results),
+            "results": results[:3]  # Solo primeros 3 para no saturar
+        }
+        
+    except Exception as e:
+        return {
+            "status": "error",
+            "message": str(e),
+            "error_type": type(e).__name__
+        }
 
 # Debug endpoints (only for development/testing)
 app.include_router(admin_router, prefix="/api", tags=["admin"])

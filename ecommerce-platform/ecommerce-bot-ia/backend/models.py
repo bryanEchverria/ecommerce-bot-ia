@@ -219,6 +219,7 @@ class TenantPrompts(Base):
     style_overrides = Column(JSONB, nullable=False, server_default="'{}'::jsonb")
     nlu_params = Column(JSONB, nullable=False, server_default="'{}'::jsonb")
     nlg_params = Column(JSONB, nullable=False, server_default="'{}'::jsonb")
+    database_queries = Column(JSONB, nullable=True, server_default="'{}'::jsonb")  # Queries SQL dinámicas
     version = Column(Integer, nullable=False, default=1)
     is_active = Column(Boolean, nullable=False, default=True)
     updated_by = Column(String, nullable=False)  # User ID who made the change

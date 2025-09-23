@@ -45,6 +45,72 @@ class NLUParams(BaseModel):
     enable_entity_extraction: Optional[bool] = True
 
 
+class DatabaseQuery(BaseModel):
+    """Configuración de consulta SQL dinámica para el bot"""
+    name: str = Field(..., min_length=1, max_length=50, description="Nombre descriptivo de la query")
+    description: Optional[str] = Field(None, max_length=200, description="Descripción de qué información proporciona")
+    sql_template: str = Field(..., min_length=10, max_length=1000, description="Template SQL con placeholders")
+    parameters: Optional[List[str]] = Field(default_factory=list, description="Parámetros que acepta la query")
+    max_results: Optional[int] = Field(10, ge=1, le=100, description="Máximo número de resultados")
+    cache_ttl_seconds: Optional[int] = Field(300, ge=0, le=3600, description="TTL del cache en segundos")
+    is_active: Optional[bool] = Field(True, description="Si la query está activa")
+    
+    @validator('sql_template')
+    def validate_sql_template(cls, v):
+        # Validaciones básicas de seguridad SQL
+        forbidden_keywords = ['drop', 'delete', 'update', 'insert', 'alter', 'create', 'truncate', '--', ';']
+        v_lower = v.lower()
+        for keyword in forbidden_keywords:
+            if keyword in v_lower:
+                raise ValueError(f"SQL template no puede contener '{keyword}' por seguridad")
+        
+        # Debe empezar con SELECT
+        if not v_lower.strip().startswith('select'):
+            raise ValueError("SQL template debe empezar con SELECT")
+            
+        return v.strip()
+
+class DatabaseQueries(BaseModel):
+    """Conjunto de queries SQL dinámicas configurables"""
+    products_query: Optional[DatabaseQuery] = Field(
+        default=DatabaseQuery(
+            name="productos_catalogo",
+            description="Consulta productos disponibles por categoría",
+            sql_template="SELECT name, description, price, sale_price, stock, category FROM products WHERE client_id = $client_id AND status = 'active' AND category ILIKE $category ORDER BY name LIMIT $limit",
+            parameters=["client_id", "category", "limit"],
+            max_results=20
+        ),
+        description="Query para consultar productos"
+    )
+    
+    campaigns_query: Optional[DatabaseQuery] = Field(
+        default=DatabaseQuery(
+            name="campanas_activas",
+            description="Consulta campañas publicitarias activas",
+            sql_template="SELECT name, start_date, end_date, budget, status FROM campaigns WHERE client_id = $client_id AND status = 'active' AND end_date > NOW() ORDER BY start_date LIMIT $limit",
+            parameters=["client_id", "limit"],
+            max_results=10
+        ),
+        description="Query para consultar campañas"
+    )
+    
+    discounts_query: Optional[DatabaseQuery] = Field(
+        default=DatabaseQuery(
+            name="descuentos_vigentes",
+            description="Consulta descuentos y promociones vigentes",
+            sql_template="SELECT name, type, value, target, category FROM discounts WHERE client_id = $client_id AND is_active = true ORDER BY value DESC LIMIT $limit",
+            parameters=["client_id", "limit"],
+            max_results=15
+        ),
+        description="Query para consultar descuentos"
+    )
+    
+    custom_queries: Optional[List[DatabaseQuery]] = Field(
+        default_factory=list,
+        max_items=5,
+        description="Queries personalizadas adicionales"
+    )
+
 class NLGParams(BaseModel):
     """Parámetros para Natural Language Generation"""
     modelo: Optional[Literal["gpt-4o-mini", "gpt-4o", "gpt-3.5-turbo"]] = "gpt-4o-mini" 
@@ -62,6 +128,7 @@ class TenantPromptBase(BaseModel):
     style_overrides: Optional[StyleOverrides] = None
     nlu_params: Optional[NLUParams] = None
     nlg_params: Optional[NLGParams] = None
+    database_queries: Optional[DatabaseQueries] = Field(default_factory=DatabaseQueries, description="Queries SQL dinámicas para consultar BD")
     
     @validator('system_prompt')
     def validate_system_prompt(cls, v):
