@@ -99,7 +99,7 @@ class TenantPromptBase(BaseModel):
         
         return v.strip()
     
-    @root_validator
+    @root_validator(skip_on_failure=True)
     def validate_complete_config(cls, values):
         """Validar que la configuración completa sea coherente"""
         style = values.get('style_overrides')

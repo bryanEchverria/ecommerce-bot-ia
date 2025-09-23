@@ -86,6 +86,7 @@ class TenantMiddleware(BaseHTTPMiddleware):
         "/flow/return",   # Flow return URLs
         "/test-preview/", # Testing endpoint
         "/api/tenants/",  # All tenant API endpoints (for preview)
+        "/api/settings/", # Global settings endpoints (WhatsApp, etc.)
         "/preview-fixed/", # Fixed preview endpoint
         "/simple-preview/", # Simple preview endpoint (bypass all middleware)
         "/bot-proxy/" # Bot proxy endpoint (fixes HTTPS mixed content)
