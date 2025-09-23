@@ -147,6 +147,7 @@ app.include_router(ai_analytics_router, prefix="/api", tags=["ai-analytics"])
 # Tenant prompts endpoints (multitenant bot configuration)
 app.include_router(tenant_prompts_router, tags=["tenant-prompts"])
 
+
 # Debug endpoints (only for development/testing)
 app.include_router(admin_router, prefix="/api", tags=["admin"])
 app.include_router(debug_router, tags=["debug"])

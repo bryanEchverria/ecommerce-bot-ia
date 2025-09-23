@@ -16,6 +16,7 @@ class StyleOverrides(BaseModel):
     cta_principal: Optional[str] = Field(None, max_length=100)  # Call-to-action principal
     limite_respuesta_caracteres: Optional[int] = Field(500, ge=100, le=2000)
     incluir_branding: Optional[bool] = True
+    incluir_contexto_empresa: Optional[bool] = True  # Alias for compatibility
     
     @validator('emojis_permitidos')
     def validate_emojis(cls, v):
@@ -108,10 +109,10 @@ class TenantPromptBase(BaseModel):
         if style and nlg:
             # Si se limita respuesta por caracteres, ajustar tokens
             if style.limite_respuesta_caracteres and nlg.max_tokens_nlg:
-                # Aproximadamente 4 caracteres por token
-                estimated_tokens = style.limite_respuesta_caracteres // 4
-                if nlg.max_tokens_nlg > estimated_tokens * 1.5:
-                    raise ValueError("max_tokens_nlg muy alto para el límite de caracteres configurado")
+                # Aproximadamente 3-4 caracteres por token (ser más flexible)
+                estimated_tokens = style.limite_respuesta_caracteres // 3
+                if nlg.max_tokens_nlg > estimated_tokens * 2:  # Más tolerante
+                    raise ValueError(f"max_tokens_nlg ({nlg.max_tokens_nlg}) muy alto para límite de {style.limite_respuesta_caracteres} caracteres. Máximo recomendado: {estimated_tokens * 2}")
         
         return values
 

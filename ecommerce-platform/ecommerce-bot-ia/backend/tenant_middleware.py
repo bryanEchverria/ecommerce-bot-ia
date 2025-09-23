@@ -89,7 +89,8 @@ class TenantMiddleware(BaseHTTPMiddleware):
         "/api/settings/", # Global settings endpoints (WhatsApp, etc.)
         "/preview-fixed/", # Fixed preview endpoint
         "/simple-preview/", # Simple preview endpoint (bypass all middleware)
-        "/bot-proxy/" # Bot proxy endpoint (fixes HTTPS mixed content)
+        "/bot-proxy/", # Bot proxy endpoint (fixes HTTPS mixed content)
+        "/debug/" # Debug endpoints for development
     ]
 
     async def dispatch(self, request: Request, call_next) -> Response:
