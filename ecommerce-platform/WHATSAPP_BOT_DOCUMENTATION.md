@@ -385,6 +385,91 @@ def procesar_mensaje_flow(db: Session, telefono: str, mensaje: str, tenant_id: s
 
 ## 👥 Sistema Multi-Tenant
 
+### 🚀 **Concepto Clave: Webhooks Únicos por Cliente**
+
+El bot es **100% multi-tenant**, esto significa que:
+
+✅ **Cada cliente tiene su propia URL de webhook única**
+✅ **Cada cliente configura su cuenta WhatsApp independiente** 
+✅ **Aislamiento total de datos, productos y configuración**
+✅ **Un solo servidor maneja múltiples clientes sin interferencia**
+
+#### **Ejemplo de Configuración Multi-Tenant:**
+
+```yaml
+# Cliente 1: ACME Cannabis
+Empresa: ACME Cannabis
+WhatsApp Number: +1234567890
+Webhook URL: https://tudominio.com/webhook/acme
+Productos: Cannabis, aceites, semillas
+Configuración: Tono casual, emojis 🌿
+
+# Cliente 2: Bravo Gaming  
+Empresa: Bravo Gaming
+WhatsApp Number: +0987654321
+Webhook URL: https://tudominio.com/webhook/bravo
+Productos: Videojuegos, consolas, accesorios
+Configuración: Tono gamer, emojis 🎮
+
+# Cliente 3: Mundo Canino
+Empresa: Mundo Canino
+WhatsApp Number: +1122334455
+Webhook URL: https://tudominio.com/webhook/mundo-canino
+Productos: Comida perros, juguetes, accesorios
+Configuración: Tono amigable, emojis 🐕
+```
+
+#### **Flujo Multi-Tenant Explicado:**
+
+```mermaid
+graph LR
+    A[Cliente ACME<br/>+1234567890] --> B[Meta/Twilio]
+    C[Cliente Bravo<br/>+0987654321] --> D[Meta/Twilio]
+    E[Cliente Mundo Canino<br/>+1122334455] --> F[Meta/Twilio]
+    
+    B --> G[/webhook/acme]
+    D --> H[/webhook/bravo]
+    F --> I[/webhook/mundo-canino]
+    
+    G --> J[Bot ACME<br/>🌿 Cannabis]
+    H --> K[Bot Bravo<br/>🎮 Gaming]
+    I --> L[Bot Mundo Canino<br/>🐕 Pets]
+```
+
+#### **URLs de Webhooks Activos:**
+
+Puedes ver todos los tenants disponibles:
+```bash
+curl http://localhost:9001/tenants
+```
+
+**Respuesta actual del sistema:**
+```json
+{
+  "total_tenants": 5,
+  "tenants": [
+    {
+      "name": "ACME Cannabis Store",
+      "slug": "acme", 
+      "webhook_url": "/webhook/acme",
+      "full_webhook_url": "http://localhost:9001/webhook/acme"
+    },
+    {
+      "name": "Bravo Gaming Store", 
+      "slug": "bravo",
+      "webhook_url": "/webhook/bravo",
+      "full_webhook_url": "http://localhost:9001/webhook/bravo"
+    },
+    {
+      "name": "Mundo Canino Store",
+      "slug": "mundo-canino", 
+      "webhook_url": "/webhook/mundo-canino",
+      "full_webhook_url": "http://localhost:9001/webhook/mundo-canino"
+    }
+  ]
+}
+```
+
 ### Configuración de Nuevo Tenant
 
 #### 1. Crear Tenant en Base de Datos
@@ -439,9 +524,50 @@ response = requests.put(
 )
 ```
 
-#### 3. Webhook URL del Nuevo Tenant
+#### 3. Configurar Webhook Único del Nuevo Tenant
+
+**🎯 IMPORTANTE: Cada tenant tiene su propia URL de webhook única**
+
 ```
-https://tudominio.com/webhook/nueva
+Webhook URL para Nueva Tienda: https://tudominio.com/webhook/nueva
+```
+
+**Configuración en WhatsApp Provider:**
+
+Para **Meta WhatsApp Cloud API**:
+```bash
+# Configurar webhook en Meta Developer Console
+Webhook URL: https://tudominio.com/webhook/nueva
+Verify Token: tu_token_verificacion
+Webhook Fields: messages, messaging_postbacks
+```
+
+Para **Twilio WhatsApp**:
+```bash
+# Configurar en Twilio Console
+Webhook URL: https://tudominio.com/webhook/nueva
+HTTP Method: POST
+Content Type: application/json
+```
+
+**Test del Webhook:**
+```bash
+# Test directo al webhook del nuevo tenant
+curl -X POST https://tudominio.com/webhook/nueva \
+  -H "Content-Type: application/json" \
+  -d '{
+    "telefono": "+56912345678",
+    "mensaje": "Hola, soy cliente nuevo"
+  }'
+
+# Respuesta esperada:
+{
+  "respuesta": "¡Hola! Bienvenido a Nueva Tienda...",
+  "tenant_slug": "nueva",
+  "tenant_id": "nueva-tienda-2024",
+  "tenant_name": "Nueva Tienda",
+  "status": "success"
+}
 ```
 
 ### Aislamiento de Datos
@@ -738,22 +864,63 @@ docker-compose exec postgres psql -U ecommerce_user -d ecommerce_multi_tenant
 
 ## 📚 Ejemplos de Uso
 
-### Ejemplo 1: Conversación Básica
+### Ejemplo 1: Conversación Multi-Tenant
 
-```python
-# Test con curl
+#### **Cliente ACME Cannabis** (webhook: `/webhook/acme`)
+```bash
+# Usuario de ACME Cannabis pregunta por aceites
 curl -X POST http://localhost:9001/webhook/acme \
   -H "Content-Type: application/json" \
   -d '{
     "telefono": "+56912345678",
-    "mensaje": "Hola, quiero ver sus productos de aceites"
+    "mensaje": "Hola, quiero ver aceites"
   }'
 
-# Respuesta esperada:
+# Respuesta de ACME (tono cannabis, productos específicos):
 {
-  "respuesta": "¡Hola! 🌿 Te muestro nuestros aceites disponibles:\n\n1. **Aceite CBD 500mg** - $25,000\n   Extracto puro de CBD, ideal para uso diario\n   ✅ 15 unidades disponibles\n\n2. **Aceite Full Spectrum** - $35,000\n   Espectro completo con todos los cannabinoides\n   ✅ 8 unidades disponibles\n\n¿Te interesa alguno? 💚"
+  "respuesta": "¡Hola! 🌿 Te muestro nuestros aceites cannábicos:\n\n1. **Aceite CBD 500mg** - $25,000\n   Extracto puro para uso medicinal\n   ✅ 15 unidades disponibles\n\n2. **Aceite Full Spectrum** - $35,000\n   Espectro completo THC+CBD\n   ✅ 8 unidades disponibles\n\n¿Cuál necesitas? 💚",
+  "tenant_slug": "acme",
+  "tenant_name": "ACME Cannabis Store"
 }
 ```
+
+#### **Cliente Bravo Gaming** (webhook: `/webhook/bravo`)
+```bash
+# Usuario de Bravo Gaming pregunta por productos
+curl -X POST http://localhost:9001/webhook/bravo \
+  -H "Content-Type: application/json" \
+  -d '{
+    "telefono": "+56987654321", 
+    "mensaje": "Hola, qué consolas tienen?"
+  }'
+
+# Respuesta de Bravo (tono gamer, productos gaming):
+{
+  "respuesta": "¡Hola gamer! 🎮 Estas son nuestras consolas disponibles:\n\n1. **PlayStation 5** - $599,990\n   La consola next-gen de Sony\n   ✅ 3 unidades disponibles\n\n2. **Xbox Series X** - $549,990\n   Potencia 4K de Microsoft\n   ✅ 5 unidades disponibles\n\n¿Cuál te llama más? 🕹️",
+  "tenant_slug": "bravo", 
+  "tenant_name": "Bravo Gaming Store"
+}
+```
+
+#### **Cliente Mundo Canino** (webhook: `/webhook/mundo-canino`)
+```bash
+# Usuario de Mundo Canino pregunta por comida
+curl -X POST http://localhost:9001/webhook/mundo-canino \
+  -H "Content-Type: application/json" \
+  -d '{
+    "telefono": "+56900000000",
+    "mensaje": "Qué comida tienen para perros?"
+  }'
+
+# Respuesta de Mundo Canino (tono pet-friendly):
+{
+  "respuesta": "¡Hola! 🐕 Tenemos estas opciones de alimento:\n\n1. **Royal Canin Adult** - $45,000\n   Nutrición balanceada para adultos\n   ✅ 20 sacos disponibles\n\n2. **Pedigree Cachorro** - $28,000\n   Especial para perritos pequeños\n   ✅ 15 sacos disponibles\n\n¿Qué edad tiene tu perrito? 🦴",
+  "tenant_slug": "mundo-canino",
+  "tenant_name": "Mundo Canino Store"
+}
+```
+
+**🎯 Nota importante**: Cada webhook procesa **SOLO** los productos y configuración de su tenant específico. ¡No hay mezcla de datos!
 
 ### Ejemplo 2: Crear Orden de Compra
 
