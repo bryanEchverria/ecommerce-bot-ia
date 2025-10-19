@@ -9,6 +9,8 @@ from dataclasses import dataclass
 from sqlalchemy.orm import Session
 
 from models import TenantPrompts
+from prompt_schemas import DatabaseQueries
+from services.bot_prompt_integration import BotPromptIntegration
 
 
 @dataclass
@@ -16,9 +18,11 @@ class CachedPromptConfig:
     """Estructura de datos para configuración cacheada"""
     tenant_id: str
     system_prompt: str
+    enhanced_system_prompt: str  # Prompt enriquecido con capacidades de BD
     style_overrides: Dict[str, Any]
     nlu_params: Dict[str, Any]
     nlg_params: Dict[str, Any]
+    database_queries: Optional[Dict[str, Any]]
     version: int
     cached_at: float
     ttl_seconds: int = 600  # 10 minutos por defecto
@@ -90,12 +94,31 @@ class TenantPromptCache:
         cache_key = self._get_cache_key(tenant_id)
         ttl = ttl_seconds or self._default_ttl
         
+        # 🤖 GENERAR PROMPT ENRIQUECIDO con capacidades de BD
+        enhanced_prompt = prompt_config.system_prompt
+        try:
+            # Parsear database_queries si existe
+            db_queries = None
+            if prompt_config.database_queries:
+                db_queries = DatabaseQueries(**prompt_config.database_queries)
+                # Generar prompt enriquecido automáticamente
+                enhanced_prompt = BotPromptIntegration.generate_enhanced_system_prompt(
+                    base_prompt=prompt_config.system_prompt,
+                    db_queries=db_queries
+                )
+        except Exception as e:
+            # Si hay error, usar prompt original
+            print(f"Warning: Error generating enhanced prompt for {tenant_id}: {e}")
+            enhanced_prompt = prompt_config.system_prompt
+        
         cached_config = CachedPromptConfig(
             tenant_id=tenant_id,
             system_prompt=prompt_config.system_prompt,
+            enhanced_system_prompt=enhanced_prompt,
             style_overrides=prompt_config.style_overrides or {},
             nlu_params=prompt_config.nlu_params or {},
             nlg_params=prompt_config.nlg_params or {},
+            database_queries=prompt_config.database_queries or {},
             version=prompt_config.version,
             cached_at=time.time(),
             ttl_seconds=ttl

@@ -10,7 +10,7 @@ import re
 
 class StyleOverrides(BaseModel):
     """Configuración de estilo para respuestas del bot"""
-    tono: Optional[Literal["formal", "casual", "amigable", "profesional"]] = "amigable"
+    tono: Optional[Literal["formal", "casual", "amigable", "profesional", "super_amigable", "experto"]] = "amigable"
     usar_emojis: Optional[bool] = True
     emojis_permitidos: Optional[List[str]] = Field(default_factory=lambda: ["👋", "🌿", "✅", "❌", "🛒", "💰"])
     cta_principal: Optional[str] = Field(None, max_length=100)  # Call-to-action principal
